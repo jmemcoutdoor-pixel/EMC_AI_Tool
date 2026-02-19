@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OOH Amplification Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff8eb',
+                            100: '#ffecc6',
+                            200: '#ffd688',
+                            300: '#ffbe4a',
+                            400: '#ffab20',
+                            500: '#ff9900',
+                            600: '#e27400',
+                            700: '#bb5002',
+                            800: '#983e08',
+                            900: '#7c330b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .slider { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 5px; background: #d3d3d3; outline: none; opacity: 0.7; transition: .2s; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #ff9900; cursor: pointer; }
+    </style>
+</head>
+<body class="bg-gray-50 p-4 md:p-10">
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-brand-500 p-6">
+            <h1 class="text-2xl font-bold text-white">OOH Amplification Tool</h1>
+            <p class="text-brand-100">See how reallocating your budget to OOH increases overall campaign effectiveness.</p>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+            <div class="space-y-6">
+                <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">1. Enter Current Budgets</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Broadcast (TV)</label>
+                        <input type="number" id="in-tv" value="3000000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Digital</label>
+                        <input type="number" id="in-digital" value="6000000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Print</label>
+                        <input type="number" id="in-print" value="200000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Radio</label>
+                        <input type="number" id="in-radio" value="750000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Current OOH Spend</label>
+                        <input type="number" id="in-ooh" value="101000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
+                    </div>
+                </div>
+                <div class="bg-brand-50 p-6 rounded-lg">
+                    <h2 class="text-xl font-semibold text-brand-800 mb-4">2. Reallocate to OOH</h2>
+                    <p class="text-sm text-brand-700 mb-4 text-center font-bold">Recommended: 14% OOH Share</p>
+                    <input type="range" id="ooh-slider" min="0" max="25" step="0.5" value="1" class="slider" oninput="calculate()">
+                    <div class="flex justify-between text-xs font-bold mt-2 text-brand-600">
+                        <span>0%</span>
+                        <span>TARGET: 14%</span>
+                        <span>25%</span>
+                    </div>
+                    <p class="mt-4 text-center text-gray-700">New OOH Spend Ratio: <span id="target-ooh-percent" class="font-bold text-brand-600">1%</span></p>
+                </div>
+            </div>
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Campaign Effectiveness</h2>
+
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <div class="bg-white p-4 rounded shadow-sm text-center">
+                        <p class="text-sm text-gray-500 uppercase">Original Effect</p>
+                        <p id="res-orig-total" class="text-2xl font-bold text-gray-800">$0</p>
+                    </div>
+                    <div class="bg-brand-500 p-4 rounded shadow-sm text-center">
+                        <p class="text-sm text-brand-100 uppercase">Optimized Effect</p>
+                        <p id="res-opt-total" class="text-2xl font-bold text-white">$0</p>
+                    </div>
+                </div>
+                <div class="h-64">
+                    <canvas id="resultChart"></canvas>
+                </div>
+                <div class="mt-8 p-4 bg-green-100 rounded-lg text-center border border-green-200">
+                    <p class="text-green-800 font-medium">Additional "Free" Effectiveness Gained</p>
+                    <p id="res-lift" class="text-3xl font-black text-green-700">$0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let chart;
+
+        // Per-channel amplification boosts from OOH presence
+        const MAX_BOOSTS = { tv: 0.33, digital: 0.17, print: 0.14, radio: 0.17 };
+        const OPTIMAL_RATIO = 0.14;
+
+        function calculate() {
+            // 1. Get Inputs
+            const tv = parseFloat(document.getElementById('in-tv').value) || 0;
+            const digital = parseFloat(document.getElementById('in-digital').value) || 0;
+            const print = parseFloat(document.getElementById('in-print').value) || 0;
+            const radio = parseFloat(document.getElementById('in-radio').value) || 0;
+            const oohOrig = parseFloat(document.getElementById('in-ooh').value) || 0;
+
+            const totalBudget = tv + digital + print + radio + oohOrig;
+            const sliderVal = parseFloat(document.getElementById('ooh-slider').value) / 100;
+
+            document.getElementById('target-ooh-percent').innerText = (sliderVal * 100).toFixed(1) + "%";
+
+            if (totalBudget === 0) {
+                document.getElementById('res-orig-total').innerText = '$0';
+                document.getElementById('res-opt-total').innerText = '$0';
+                document.getElementById('res-lift').innerText = '$0';
+                updateChart(0, 0);
+                return;
+            }
+
+            // Channel mix ratios (of non-OOH budget)
+            const currentNonOOHBudget = tv + digital + print + radio;
+            const ratioTV = currentNonOOHBudget > 0 ? tv / currentNonOOHBudget : 0;
+            const ratioDig = currentNonOOHBudget > 0 ? digital / currentNonOOHBudget : 0;
+            const ratioPr = currentNonOOHBudget > 0 ? print / currentNonOOHBudget : 0;
+            const ratioRa = currentNonOOHBudget > 0 ? radio / currentNonOOHBudget : 0;
+
+            // Weighted max boost based on channel mix
+            const weightedMaxBoost = (ratioTV * MAX_BOOSTS.tv) +
+                                     (ratioDig * MAX_BOOSTS.digital) +
+                                     (ratioPr * MAX_BOOSTS.print) +
+                                     (ratioRa * MAX_BOOSTS.radio);
+
+            // 2. Original Effectiveness
+            // OOH amplifies the WHOLE campaign proportionally.
+            // Amplification scales linearly from 0 at 0% OOH to full at 14%, then plateaus.
+            const origOOHRatio = oohOrig / totalBudget;
+            const origAmplification = Math.min(origOOHRatio / OPTIMAL_RATIO, 1.0);
+            const origEffect = totalBudget * (1 + weightedMaxBoost * origAmplification);
+
+            // 3. Optimized Effectiveness (same total budget, new OOH share)
+            const newAmplification = Math.min(sliderVal / OPTIMAL_RATIO, 1.0);
+            const newEffect = totalBudget * (1 + weightedMaxBoost * newAmplification);
+
+            // 4. Update UI
+            const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+            document.getElementById('res-orig-total').innerText = formatter.format(origEffect);
+            document.getElementById('res-opt-total').innerText = formatter.format(newEffect);
+            document.getElementById('res-lift').innerText = formatter.format(newEffect - origEffect);
+
+            updateChart(origEffect, newEffect);
+        }
+
+        function updateChart(orig, opt) {
+            const ctx = document.getElementById('resultChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Current Strategy', 'OOH-Optimized Strategy'],
+                    datasets: [{
+                        label: 'Total Campaign Effectiveness',
+                        data: [orig, opt],
+                        backgroundColor: ['#94a3b8', '#ff9900']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: value => '$' + value.toLocaleString() } } }
+                }
+            });
+        }
+
+        // Initial Calc
+        calculate();
+    </script>
+</body>
+</html>
