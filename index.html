@@ -6,118 +6,301 @@
     <title>OOH Amplification Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#fff8eb',
-                            100: '#ffecc6',
-                            200: '#ffd688',
-                            300: '#ffbe4a',
-                            400: '#ffab20',
-                            500: '#ff9900',
-                            600: '#e27400',
-                            700: '#bb5002',
-                            800: '#983e08',
-                            900: '#7c330b',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        .slider { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 5px; background: #d3d3d3; outline: none; opacity: 0.7; transition: .2s; }
-        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #ff9900; cursor: pointer; }
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: linear-gradient(to right, #dbeafe, #2563eb);
+            outline: none;
+            transition: .2s;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(37,99,235,0.2);
+        }
+        .budget-input {
+            font-variant-numeric: tabular-nums;
+        }
+        .channel-card {
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .channel-card:focus-within {
+            box-shadow: 0 0 0 2px #2563eb, 0 4px 12px rgba(37,99,235,0.15);
+            transform: translateY(-1px);
+        }
     </style>
 </head>
-<body class="bg-gray-50 p-4 md:p-10">
-    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="bg-brand-500 p-6">
-            <h1 class="text-2xl font-bold text-white">OOH Amplification Tool</h1>
-            <p class="text-brand-100">See how reallocating your budget to OOH increases overall campaign effectiveness.</p>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 md:p-8 mb-6 shadow-lg">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-chart-line text-white text-lg"></i>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-bold text-white">OOH Amplification Tool</h1>
+            </div>
+            <p class="text-blue-100 text-sm md:text-base ml-[52px]">See how reallocating your budget to OOH increases overall campaign effectiveness.</p>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-            <div class="space-y-6">
-                <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">1. Enter Current Budgets</h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Broadcast (TV)</label>
-                        <input type="number" id="in-tv" value="3000000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Column: Inputs -->
+            <div class="lg:col-span-5 space-y-6">
+                <!-- Budget Input Cards -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center gap-2 mb-5">
+                        <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">1</div>
+                        <h2 class="text-lg font-semibold text-slate-800">Current Media Budgets</h2>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Digital</label>
-                        <input type="number" id="in-digital" value="6000000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
+
+                    <div class="space-y-3">
+                        <!-- TV -->
+                        <div class="channel-card flex items-center gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-tv text-indigo-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide">Broadcast (TV)</label>
+                                <div class="relative mt-1">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                                    <input type="text" id="in-tv" value="3,000,000" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" oninput="formatAndCalculate(this)" data-raw="3000000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Digital -->
+                        <div class="channel-card flex items-center gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-globe text-cyan-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide">Digital</label>
+                                <div class="relative mt-1">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                                    <input type="text" id="in-digital" value="6,000,000" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" oninput="formatAndCalculate(this)" data-raw="6000000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Print -->
+                        <div class="channel-card flex items-center gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-newspaper text-amber-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide">Print</label>
+                                <div class="relative mt-1">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                                    <input type="text" id="in-print" value="200,000" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" oninput="formatAndCalculate(this)" data-raw="200000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Radio -->
+                        <div class="channel-card flex items-center gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div class="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-radio text-rose-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-xs font-medium text-slate-500 uppercase tracking-wide">Radio</label>
+                                <div class="relative mt-1">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                                    <input type="text" id="in-radio" value="750,000" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" oninput="formatAndCalculate(this)" data-raw="750000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OOH -->
+                        <div class="channel-card flex items-center gap-3 bg-blue-50 rounded-xl p-3 border-2 border-blue-200">
+                            <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-rectangle-ad text-white"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-xs font-medium text-blue-600 uppercase tracking-wide">Current OOH Spend</label>
+                                <div class="relative mt-1">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                                    <input type="text" id="in-ooh" value="101,000" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-blue-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" oninput="formatAndCalculate(this)" data-raw="101000">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Print</label>
-                        <input type="number" id="in-print" value="200000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Radio</label>
-                        <input type="number" id="in-radio" value="750000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700">Current OOH Spend</label>
-                        <input type="number" id="in-ooh" value="101000" class="w-full p-2 border rounded mt-1" oninput="calculate()">
+
+                    <!-- Total Budget -->
+                    <div class="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
+                        <span class="text-sm font-medium text-slate-500">Total Budget</span>
+                        <span id="total-budget" class="text-lg font-bold text-slate-800">$10,051,000</span>
                     </div>
                 </div>
-                <div class="bg-brand-50 p-6 rounded-lg">
-                    <h2 class="text-xl font-semibold text-brand-800 mb-4">2. Reallocate to OOH</h2>
-                    <p class="text-sm text-brand-700 mb-4 text-center font-bold">Recommended: 14% OOH Share</p>
-                    <input type="range" id="ooh-slider" min="0" max="25" step="0.5" value="1" class="slider" oninput="calculate()">
-                    <div class="flex justify-between text-xs font-bold mt-2 text-brand-600">
-                        <span>0%</span>
-                        <span>TARGET: 14%</span>
-                        <span>25%</span>
+
+                <!-- Slider Section -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center gap-2 mb-5">
+                        <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">2</div>
+                        <h2 class="text-lg font-semibold text-slate-800">Reallocate to OOH</h2>
                     </div>
-                    <p class="mt-4 text-center text-gray-700">New OOH Spend Ratio: <span id="target-ooh-percent" class="font-bold text-brand-600">1%</span></p>
+
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+                        <div class="flex items-center justify-center gap-2 text-sm text-blue-700 font-semibold">
+                            <i class="fa-solid fa-bullseye text-blue-500"></i>
+                            Recommended: 14% OOH Share
+                        </div>
+                    </div>
+
+                    <div class="px-1">
+                        <input type="range" id="ooh-slider" min="0" max="25" step="0.5" value="1" class="slider" oninput="calculate()">
+                        <div class="flex justify-between text-xs font-semibold mt-2 text-slate-400">
+                            <span>0%</span>
+                            <span class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">TARGET 14%</span>
+                            <span>25%</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 text-center">
+                        <p class="text-xs text-slate-400 uppercase tracking-wide">New OOH Share</p>
+                        <p id="target-ooh-percent" class="text-3xl font-black text-blue-600 mt-1">1.0%</p>
+                        <p class="text-sm text-slate-500 mt-1">OOH Spend: <span id="new-ooh-dollar" class="font-semibold text-slate-700">$100,510</span></p>
+                    </div>
                 </div>
             </div>
-            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Campaign Effectiveness</h2>
 
-                <div class="grid grid-cols-2 gap-4 mb-8">
-                    <div class="bg-white p-4 rounded shadow-sm text-center">
-                        <p class="text-sm text-gray-500 uppercase">Original Effect</p>
-                        <p id="res-orig-total" class="text-2xl font-bold text-gray-800">$0</p>
+            <!-- Right Column: Results -->
+            <div class="lg:col-span-7 space-y-6">
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                                <i class="fa-solid fa-chart-simple text-slate-500 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-medium text-slate-400 uppercase tracking-wide">Current</span>
+                        </div>
+                        <p id="res-orig-total" class="text-xl font-bold text-slate-800">$0</p>
+                        <p class="text-xs text-slate-400 mt-1">Original effectiveness</p>
                     </div>
-                    <div class="bg-brand-500 p-4 rounded shadow-sm text-center">
-                        <p class="text-sm text-brand-100 uppercase">Optimized Effect</p>
-                        <p id="res-opt-total" class="text-2xl font-bold text-white">$0</p>
+
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-sm p-5 text-white">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                                <i class="fa-solid fa-rocket text-white text-sm"></i>
+                            </div>
+                            <span class="text-xs font-medium text-blue-200 uppercase tracking-wide">Optimized</span>
+                        </div>
+                        <p id="res-opt-total" class="text-xl font-bold">$0</p>
+                        <p class="text-xs text-blue-200 mt-1">With OOH reallocation</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border-2 border-emerald-200 p-5">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                                <i class="fa-solid fa-arrow-trend-up text-emerald-600 text-sm"></i>
+                            </div>
+                            <span class="text-xs font-medium text-emerald-500 uppercase tracking-wide">Lift</span>
+                        </div>
+                        <p id="res-lift" class="text-xl font-bold text-emerald-700">$0</p>
+                        <p class="text-xs text-emerald-500 mt-1">"Free" effectiveness</p>
                     </div>
                 </div>
-                <div class="h-64">
-                    <canvas id="resultChart"></canvas>
+
+                <!-- Chart -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 class="text-sm font-semibold text-slate-800 mb-4">Campaign Effectiveness Comparison</h3>
+                    <div class="h-72">
+                        <canvas id="resultChart"></canvas>
+                    </div>
                 </div>
-                <div class="mt-8 p-4 bg-green-100 rounded-lg text-center border border-green-200">
-                    <p class="text-green-800 font-medium">Additional "Free" Effectiveness Gained</p>
-                    <p id="res-lift" class="text-3xl font-black text-green-700">$0</p>
+
+                <!-- Boost Breakdown -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 class="text-sm font-semibold text-slate-800 mb-4">OOH Amplification by Channel</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="text-center p-3 bg-indigo-50 rounded-xl">
+                            <i class="fa-solid fa-tv text-indigo-500 mb-1"></i>
+                            <p class="text-xs text-slate-500">TV</p>
+                            <p class="text-lg font-bold text-indigo-600">+33%</p>
+                        </div>
+                        <div class="text-center p-3 bg-cyan-50 rounded-xl">
+                            <i class="fa-solid fa-globe text-cyan-500 mb-1"></i>
+                            <p class="text-xs text-slate-500">Digital</p>
+                            <p class="text-lg font-bold text-cyan-600">+17%</p>
+                        </div>
+                        <div class="text-center p-3 bg-amber-50 rounded-xl">
+                            <i class="fa-solid fa-newspaper text-amber-500 mb-1"></i>
+                            <p class="text-xs text-slate-500">Print</p>
+                            <p class="text-lg font-bold text-amber-600">+14%</p>
+                        </div>
+                        <div class="text-center p-3 bg-rose-50 rounded-xl">
+                            <i class="fa-solid fa-radio text-rose-500 mb-1"></i>
+                            <p class="text-xs text-slate-500">Radio</p>
+                            <p class="text-lg font-bold text-rose-600">+17%</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-400 text-center mt-3">Maximum amplification at 14% OOH allocation</p>
                 </div>
             </div>
         </div>
     </div>
+
     <script>
         let chart;
 
-        // Per-channel amplification boosts from OOH presence
         const MAX_BOOSTS = { tv: 0.33, digital: 0.17, print: 0.14, radio: 0.17 };
         const OPTIMAL_RATIO = 0.14;
 
+        // Format a number with commas
+        function formatNumber(n) {
+            return n.toLocaleString('en-US');
+        }
+
+        // Format input field with commas while preserving cursor position
+        function formatAndCalculate(el) {
+            // Strip non-numeric characters
+            let raw = el.value.replace(/[^0-9]/g, '');
+            let num = parseInt(raw, 10) || 0;
+            el.dataset.raw = num;
+
+            // Format with commas
+            let formatted = formatNumber(num);
+
+            // Preserve cursor position relative to end
+            let distFromEnd = el.value.length - el.selectionStart;
+            el.value = formatted;
+            let newPos = Math.max(0, formatted.length - distFromEnd);
+            el.setSelectionRange(newPos, newPos);
+
+            calculate();
+        }
+
+        function getRawValue(id) {
+            let el = document.getElementById(id);
+            return parseFloat(el.dataset.raw) || 0;
+        }
+
         function calculate() {
             // 1. Get Inputs
-            const tv = parseFloat(document.getElementById('in-tv').value) || 0;
-            const digital = parseFloat(document.getElementById('in-digital').value) || 0;
-            const print = parseFloat(document.getElementById('in-print').value) || 0;
-            const radio = parseFloat(document.getElementById('in-radio').value) || 0;
-            const oohOrig = parseFloat(document.getElementById('in-ooh').value) || 0;
+            const tv = getRawValue('in-tv');
+            const digital = getRawValue('in-digital');
+            const print = getRawValue('in-print');
+            const radio = getRawValue('in-radio');
+            const oohOrig = getRawValue('in-ooh');
 
             const totalBudget = tv + digital + print + radio + oohOrig;
             const sliderVal = parseFloat(document.getElementById('ooh-slider').value) / 100;
 
+            // Update displays
             document.getElementById('target-ooh-percent').innerText = (sliderVal * 100).toFixed(1) + "%";
+            document.getElementById('total-budget').innerText = '$' + formatNumber(totalBudget);
+
+            const newOOHDollar = Math.round(totalBudget * sliderVal);
+            document.getElementById('new-ooh-dollar').innerText = '$' + formatNumber(newOOHDollar);
 
             if (totalBudget === 0) {
                 document.getElementById('res-orig-total').innerText = '$0';
@@ -141,7 +324,7 @@
                                      (ratioRa * MAX_BOOSTS.radio);
 
             // 2. Original Effectiveness
-            // OOH amplifies the WHOLE campaign proportionally.
+            // OOH amplifies the entire campaign proportionally.
             // Amplification scales linearly from 0 at 0% OOH to full at 14%, then plateaus.
             const origOOHRatio = oohOrig / totalBudget;
             const origAmplification = Math.min(origOOHRatio / OPTIMAL_RATIO, 1.0);
@@ -171,14 +354,38 @@
                     datasets: [{
                         label: 'Total Campaign Effectiveness',
                         data: [orig, opt],
-                        backgroundColor: ['#94a3b8', '#ff9900']
+                        backgroundColor: ['#cbd5e1', '#2563eb'],
+                        borderRadius: 8,
+                        barPercentage: 0.5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { callback: value => '$' + value.toLocaleString() } } }
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return '$' + ctx.parsed.y.toLocaleString('en-US', { maximumFractionDigits: 0 });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                callback: value => '$' + (value / 1000000).toFixed(1) + 'M',
+                                font: { size: 11 }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 12, weight: 600 } }
+                        }
+                    }
                 }
             });
         }
