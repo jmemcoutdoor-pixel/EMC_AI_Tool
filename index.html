@@ -69,6 +69,9 @@
             box-shadow: 0 0 0 2px #ff9900, 0 4px 12px rgba(255,153,0,0.15);
             transform: translateY(-1px);
         }
+        .opt-value {
+            font-variant-numeric: tabular-nums;
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen p-3 sm:p-4 md:p-8">
@@ -88,83 +91,130 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
 
-            <!-- Left Column: Inputs -->
-            <div class="lg:col-span-5 space-y-4 sm:space-y-6">
+            <!-- Left Column: Budgets + Slider -->
+            <div class="lg:col-span-7 space-y-4 sm:space-y-6">
 
-                <!-- Budget Input Cards -->
+                <!-- Budget Table: Current vs Optimized -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
                     <div class="flex items-center gap-2 mb-4 sm:mb-5">
                         <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-600">1</div>
-                        <h2 class="text-base sm:text-lg font-semibold text-slate-800">Current Media Budgets</h2>
+                        <h2 class="text-base sm:text-lg font-semibold text-slate-800">Media Budgets</h2>
                     </div>
 
-                    <div class="space-y-2.5 sm:space-y-3">
+                    <!-- Column Headers -->
+                    <div class="flex items-center gap-2 sm:gap-3 mb-2 px-1">
+                        <div class="w-9 sm:w-10 flex-shrink-0"></div>
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wide">Current</span>
+                        </div>
+                        <div class="w-3 sm:w-4 flex-shrink-0"></div>
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[10px] sm:text-xs font-semibold text-brand-500 uppercase tracking-wide">Optimized</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 sm:space-y-2.5">
                         <!-- TV -->
-                        <div class="channel-card flex items-center gap-2.5 sm:gap-3 bg-slate-50 rounded-xl p-2.5 sm:p-3 border border-slate-100">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                                <i class="fa-solid fa-tv text-indigo-600 text-sm"></i>
+                        <div class="channel-card flex items-center gap-2 sm:gap-3 bg-slate-50 rounded-xl p-2 sm:p-3 border border-slate-100">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0" title="Broadcast (TV)">
+                                <i class="fa-solid fa-tv text-indigo-600 text-xs sm:text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide">Broadcast (TV)</label>
-                                <div class="relative mt-0.5 sm:mt-1">
-                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                                    <input type="text" id="in-tv" value="3,000,000" inputmode="numeric" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="3000000">
+                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-0.5">TV</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm font-medium">$</span>
+                                    <input type="text" id="in-tv" value="0" inputmode="numeric" class="budget-input w-full pl-5 sm:pl-6 pr-2 py-1 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="0">
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 text-slate-300"><i class="fa-solid fa-arrow-right text-[10px] sm:text-xs"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-[10px] sm:text-xs font-medium text-brand-500 uppercase tracking-wide mb-0.5">TV</label>
+                                <div class="bg-brand-50 border border-brand-100 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
+                                    <span id="opt-tv" class="opt-value text-xs sm:text-sm font-semibold text-brand-700">$0</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Digital -->
-                        <div class="channel-card flex items-center gap-2.5 sm:gap-3 bg-slate-50 rounded-xl p-2.5 sm:p-3 border border-slate-100">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-cyan-100 flex items-center justify-center flex-shrink-0">
-                                <i class="fa-solid fa-globe text-cyan-600 text-sm"></i>
+                        <div class="channel-card flex items-center gap-2 sm:gap-3 bg-slate-50 rounded-xl p-2 sm:p-3 border border-slate-100">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-cyan-100 flex items-center justify-center flex-shrink-0" title="Digital">
+                                <i class="fa-solid fa-globe text-cyan-600 text-xs sm:text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide">Digital</label>
-                                <div class="relative mt-0.5 sm:mt-1">
-                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                                    <input type="text" id="in-digital" value="6,000,000" inputmode="numeric" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="6000000">
+                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-0.5">Digital</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm font-medium">$</span>
+                                    <input type="text" id="in-digital" value="0" inputmode="numeric" class="budget-input w-full pl-5 sm:pl-6 pr-2 py-1 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="0">
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 text-slate-300"><i class="fa-solid fa-arrow-right text-[10px] sm:text-xs"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-[10px] sm:text-xs font-medium text-brand-500 uppercase tracking-wide mb-0.5">Digital</label>
+                                <div class="bg-brand-50 border border-brand-100 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
+                                    <span id="opt-digital" class="opt-value text-xs sm:text-sm font-semibold text-brand-700">$0</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Print -->
-                        <div class="channel-card flex items-center gap-2.5 sm:gap-3 bg-slate-50 rounded-xl p-2.5 sm:p-3 border border-slate-100">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                                <i class="fa-solid fa-newspaper text-amber-600 text-sm"></i>
+                        <div class="channel-card flex items-center gap-2 sm:gap-3 bg-slate-50 rounded-xl p-2 sm:p-3 border border-slate-100">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0" title="Print">
+                                <i class="fa-solid fa-newspaper text-amber-600 text-xs sm:text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide">Print</label>
-                                <div class="relative mt-0.5 sm:mt-1">
-                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                                    <input type="text" id="in-print" value="200,000" inputmode="numeric" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="200000">
+                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-0.5">Print</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm font-medium">$</span>
+                                    <input type="text" id="in-print" value="0" inputmode="numeric" class="budget-input w-full pl-5 sm:pl-6 pr-2 py-1 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="0">
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 text-slate-300"><i class="fa-solid fa-arrow-right text-[10px] sm:text-xs"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-[10px] sm:text-xs font-medium text-brand-500 uppercase tracking-wide mb-0.5">Print</label>
+                                <div class="bg-brand-50 border border-brand-100 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
+                                    <span id="opt-print" class="opt-value text-xs sm:text-sm font-semibold text-brand-700">$0</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Radio -->
-                        <div class="channel-card flex items-center gap-2.5 sm:gap-3 bg-slate-50 rounded-xl p-2.5 sm:p-3 border border-slate-100">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0">
-                                <i class="fa-solid fa-radio text-rose-600 text-sm"></i>
+                        <div class="channel-card flex items-center gap-2 sm:gap-3 bg-slate-50 rounded-xl p-2 sm:p-3 border border-slate-100">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0" title="Radio">
+                                <i class="fa-solid fa-radio text-rose-600 text-xs sm:text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide">Radio</label>
-                                <div class="relative mt-0.5 sm:mt-1">
-                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                                    <input type="text" id="in-radio" value="750,000" inputmode="numeric" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="750000">
+                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-0.5">Radio</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm font-medium">$</span>
+                                    <input type="text" id="in-radio" value="0" inputmode="numeric" class="budget-input w-full pl-5 sm:pl-6 pr-2 py-1 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="0">
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 text-slate-300"><i class="fa-solid fa-arrow-right text-[10px] sm:text-xs"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-[10px] sm:text-xs font-medium text-brand-500 uppercase tracking-wide mb-0.5">Radio</label>
+                                <div class="bg-brand-50 border border-brand-100 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
+                                    <span id="opt-radio" class="opt-value text-xs sm:text-sm font-semibold text-brand-700">$0</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- OOH (highlighted) -->
-                        <div class="channel-card flex items-center gap-2.5 sm:gap-3 bg-brand-50 rounded-xl p-2.5 sm:p-3 border-2 border-brand-200">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
-                                <i class="fa-solid fa-rectangle-ad text-white text-sm"></i>
+                        <!-- OOH (same style as others) -->
+                        <div class="channel-card flex items-center gap-2 sm:gap-3 bg-slate-50 rounded-xl p-2 sm:p-3 border border-slate-100">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-200 flex items-center justify-center flex-shrink-0" title="OOH">
+                                <i class="fa-solid fa-rectangle-ad text-slate-600 text-xs sm:text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <label class="block text-[10px] sm:text-xs font-medium text-brand-600 uppercase tracking-wide">Current OOH Spend</label>
-                                <div class="relative mt-0.5 sm:mt-1">
-                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                                    <input type="text" id="in-ooh" value="101,000" inputmode="numeric" class="budget-input w-full pl-6 pr-3 py-1.5 bg-white border border-brand-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="101000">
+                                <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-0.5">OOH</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm font-medium">$</span>
+                                    <input type="text" id="in-ooh" value="0" inputmode="numeric" class="budget-input w-full pl-5 sm:pl-6 pr-2 py-1 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" oninput="formatAndCalculate(this)" data-raw="0">
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 text-slate-300"><i class="fa-solid fa-arrow-right text-[10px] sm:text-xs"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-[10px] sm:text-xs font-medium text-brand-500 uppercase tracking-wide mb-0.5">OOH</label>
+                                <div class="bg-brand-50 border border-brand-100 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
+                                    <span id="opt-ooh" class="opt-value text-xs sm:text-sm font-semibold text-brand-700">$0</span>
                                 </div>
                             </div>
                         </div>
@@ -173,15 +223,15 @@
                     <!-- Total Budget -->
                     <div class="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-200 flex justify-between items-center">
                         <span class="text-sm font-medium text-slate-500">Total Budget</span>
-                        <span id="total-budget" class="text-base sm:text-lg font-bold text-slate-800">$10,051,000</span>
+                        <span id="total-budget" class="text-base sm:text-lg font-bold text-slate-800">$0</span>
                     </div>
                 </div>
 
-                <!-- Slider Section -->
+                <!-- Slider + OOH Recommendation -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
                     <div class="flex items-center gap-2 mb-4 sm:mb-5">
                         <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-600">2</div>
-                        <h2 class="text-base sm:text-lg font-semibold text-slate-800">Reallocate to OOH</h2>
+                        <h2 class="text-base sm:text-lg font-semibold text-slate-800">Set OOH Allocation</h2>
                     </div>
 
                     <div class="bg-brand-50 border border-brand-100 rounded-xl p-3 sm:p-4 mb-4">
@@ -200,63 +250,44 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 sm:mt-5 text-center">
-                        <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wide">New OOH Share</p>
-                        <p id="target-ooh-percent" class="text-2xl sm:text-3xl font-black text-brand-500 mt-1">1.0%</p>
-                        <p class="text-xs sm:text-sm text-slate-500 mt-1">OOH Spend: <span id="new-ooh-dollar" class="font-semibold text-slate-700">$100,510</span></p>
+                    <div class="mt-4 sm:mt-5 flex items-center justify-center gap-3 text-center">
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wide">OOH Share</p>
+                            <p id="target-ooh-percent" class="text-xl sm:text-2xl font-black text-brand-500 mt-0.5">4.0%</p>
+                        </div>
+                        <div class="w-px h-10 bg-slate-200"></div>
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wide">You Should Spend</p>
+                            <p id="new-ooh-dollar" class="text-xl sm:text-2xl font-black text-brand-500 mt-0.5">$0</p>
+                            <p class="text-[10px] sm:text-xs text-slate-400">on OOH</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Right Column: Results -->
-            <div class="lg:col-span-7 space-y-4 sm:space-y-6">
+            <div class="lg:col-span-5 space-y-4 sm:space-y-6">
 
                 <!-- Stat Cards -->
-                <div class="grid grid-cols-3 gap-2 sm:gap-4">
-                    <!-- Current -->
-                    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5">
-                        <div class="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                            <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                                <i class="fa-solid fa-chart-simple text-slate-500 text-[10px] sm:text-sm"></i>
-                            </div>
-                            <span class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wide hidden sm:inline">Current</span>
-                        </div>
-                        <p class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase sm:hidden mb-1">Current</p>
-                        <p id="res-orig-total" class="text-sm sm:text-xl font-bold text-slate-800">$0</p>
-                        <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Original effectiveness</p>
+                <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-4">
+                        <p class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase mb-1">Current</p>
+                        <p id="res-orig-total" class="text-sm sm:text-lg font-bold text-slate-800">$0</p>
                     </div>
-
-                    <!-- Optimized -->
-                    <div class="bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-5 text-white">
-                        <div class="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                            <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                                <i class="fa-solid fa-rocket text-white text-[10px] sm:text-sm"></i>
-                            </div>
-                            <span class="text-[10px] sm:text-xs font-medium text-brand-200 uppercase tracking-wide hidden sm:inline">Optimized</span>
-                        </div>
-                        <p class="text-[10px] sm:text-xs font-medium text-brand-200 uppercase sm:hidden mb-1">Optimized</p>
-                        <p id="res-opt-total" class="text-sm sm:text-xl font-bold">$0</p>
-                        <p class="text-[10px] sm:text-xs text-brand-200 mt-0.5 sm:mt-1 hidden sm:block">With OOH reallocation</p>
+                    <div class="bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-4 text-white">
+                        <p class="text-[10px] sm:text-xs font-medium text-brand-200 uppercase mb-1">Optimized</p>
+                        <p id="res-opt-total" class="text-sm sm:text-lg font-bold">$0</p>
                     </div>
-
-                    <!-- Lift -->
-                    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border-2 border-emerald-200 p-3 sm:p-5">
-                        <div class="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                            <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                                <i class="fa-solid fa-arrow-trend-up text-emerald-600 text-[10px] sm:text-sm"></i>
-                            </div>
-                            <span class="text-[10px] sm:text-xs font-medium text-emerald-500 uppercase tracking-wide hidden sm:inline">Lift</span>
-                        </div>
-                        <p class="text-[10px] sm:text-xs font-medium text-emerald-500 uppercase sm:hidden mb-1">Lift</p>
-                        <p id="res-lift" class="text-sm sm:text-xl font-bold text-emerald-700">$0</p>
-                        <p class="text-[10px] sm:text-xs text-emerald-500 mt-0.5 sm:mt-1 hidden sm:block">"Free" effectiveness</p>
+                    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border-2 border-emerald-200 p-3 sm:p-4">
+                        <p class="text-[10px] sm:text-xs font-medium text-emerald-500 uppercase mb-1">Lift</p>
+                        <p id="res-lift" class="text-sm sm:text-lg font-bold text-emerald-700">$0</p>
                     </div>
                 </div>
 
                 <!-- Chart -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
-                    <h3 class="text-xs sm:text-sm font-semibold text-slate-800 mb-3 sm:mb-4">Campaign Effectiveness Comparison</h3>
-                    <div class="h-52 sm:h-72">
+                    <h3 class="text-xs sm:text-sm font-semibold text-slate-800 mb-3 sm:mb-4">Campaign Effectiveness</h3>
+                    <div class="h-48 sm:h-64">
                         <canvas id="resultChart"></canvas>
                     </div>
                 </div>
@@ -302,6 +333,10 @@
             return n.toLocaleString('en-US');
         }
 
+        function formatCurrency(n) {
+            return '$' + formatNumber(Math.round(n));
+        }
+
         function formatAndCalculate(el) {
             let raw = el.value.replace(/[^0-9]/g, '');
             let num = parseInt(raw, 10) || 0;
@@ -333,10 +368,30 @@
             const sliderVal = parseFloat(document.getElementById('ooh-slider').value) / 100;
 
             document.getElementById('target-ooh-percent').innerText = (sliderVal * 100).toFixed(1) + "%";
-            document.getElementById('total-budget').innerText = '$' + formatNumber(totalBudget);
+            document.getElementById('total-budget').innerText = formatCurrency(totalBudget);
 
-            const newOOHDollar = Math.round(totalBudget * sliderVal);
-            document.getElementById('new-ooh-dollar').innerText = '$' + formatNumber(newOOHDollar);
+            // Calculate optimized budgets (proportional reallocation)
+            const newOOHSpend = Math.round(totalBudget * sliderVal);
+            const remainingBudget = totalBudget - newOOHSpend;
+
+            // Distribute remaining budget proportionally based on current non-OOH mix
+            const currentNonOOH = tv + digital + print + radio;
+            let optTV = 0, optDigital = 0, optPrint = 0, optRadio = 0;
+
+            if (currentNonOOH > 0) {
+                optTV = Math.round(remainingBudget * (tv / currentNonOOH));
+                optDigital = Math.round(remainingBudget * (digital / currentNonOOH));
+                optPrint = Math.round(remainingBudget * (print / currentNonOOH));
+                optRadio = Math.round(remainingBudget * (radio / currentNonOOH));
+            }
+
+            // Update optimized column
+            document.getElementById('opt-tv').innerText = formatCurrency(optTV);
+            document.getElementById('opt-digital').innerText = formatCurrency(optDigital);
+            document.getElementById('opt-print').innerText = formatCurrency(optPrint);
+            document.getElementById('opt-radio').innerText = formatCurrency(optRadio);
+            document.getElementById('opt-ooh').innerText = formatCurrency(newOOHSpend);
+            document.getElementById('new-ooh-dollar').innerText = formatCurrency(newOOHSpend);
 
             if (totalBudget === 0) {
                 document.getElementById('res-orig-total').innerText = '$0';
@@ -346,21 +401,23 @@
                 return;
             }
 
-            const currentNonOOHBudget = tv + digital + print + radio;
-            const ratioTV = currentNonOOHBudget > 0 ? tv / currentNonOOHBudget : 0;
-            const ratioDig = currentNonOOHBudget > 0 ? digital / currentNonOOHBudget : 0;
-            const ratioPr = currentNonOOHBudget > 0 ? print / currentNonOOHBudget : 0;
-            const ratioRa = currentNonOOHBudget > 0 ? radio / currentNonOOHBudget : 0;
+            // Channel mix ratios (of non-OOH budget)
+            const ratioTV = currentNonOOH > 0 ? tv / currentNonOOH : 0;
+            const ratioDig = currentNonOOH > 0 ? digital / currentNonOOH : 0;
+            const ratioPr = currentNonOOH > 0 ? print / currentNonOOH : 0;
+            const ratioRa = currentNonOOH > 0 ? radio / currentNonOOH : 0;
 
             const weightedMaxBoost = (ratioTV * MAX_BOOSTS.tv) +
                                      (ratioDig * MAX_BOOSTS.digital) +
                                      (ratioPr * MAX_BOOSTS.print) +
                                      (ratioRa * MAX_BOOSTS.radio);
 
-            const origOOHRatio = oohOrig / totalBudget;
+            // Original effectiveness
+            const origOOHRatio = totalBudget > 0 ? oohOrig / totalBudget : 0;
             const origAmplification = Math.min(origOOHRatio / OPTIMAL_RATIO, 1.0);
             const origEffect = totalBudget * (1 + weightedMaxBoost * origAmplification);
 
+            // Optimized effectiveness
             const newAmplification = Math.min(sliderVal / OPTIMAL_RATIO, 1.0);
             const newEffect = totalBudget * (1 + weightedMaxBoost * newAmplification);
 
@@ -408,7 +465,11 @@
                             beginAtZero: true,
                             grid: { color: '#f1f5f9' },
                             ticks: {
-                                callback: value => '$' + (value / 1000000).toFixed(1) + 'M',
+                                callback: function(value) {
+                                    if (value >= 1000000) return '$' + (value / 1000000).toFixed(1) + 'M';
+                                    if (value >= 1000) return '$' + (value / 1000).toFixed(0) + 'K';
+                                    return '$' + value;
+                                },
                                 font: { size: isMobile ? 10 : 11 }
                             }
                         },
@@ -421,7 +482,6 @@
             });
         }
 
-        // Recalculate chart on resize for mobile label switching
         let resizeTimer;
         window.addEventListener('resize', function() {
             clearTimeout(resizeTimer);
