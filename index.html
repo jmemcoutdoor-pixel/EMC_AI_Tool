@@ -256,8 +256,33 @@
                 </div>
             </div>
 
-            <!-- Right Column: Slider + Results -->
+            <!-- Right Column: Results -->
             <div class="lg:col-span-5 space-y-4 sm:space-y-6">
+
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-4">
+                        <p class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase mb-1">Current</p>
+                        <p id="res-orig-total" class="text-sm sm:text-lg font-bold text-slate-800">$0</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-4 text-white">
+                        <p class="text-[10px] sm:text-xs font-medium text-brand-200 uppercase mb-1">Optimized</p>
+                        <p id="res-opt-total" class="text-sm sm:text-lg font-bold">$0</p>
+                    </div>
+                    <!-- Lift card: dynamically styled by JS -->
+                    <div id="lift-card" class="bg-white rounded-xl sm:rounded-2xl shadow-sm border-2 border-emerald-200 p-3 sm:p-4">
+                        <p id="lift-label" class="text-[10px] sm:text-xs font-medium text-emerald-500 uppercase mb-1">Effectiveness Gain</p>
+                        <p id="res-lift" class="text-sm sm:text-lg font-bold text-emerald-700">$0</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+                    <h3 class="text-xs sm:text-sm font-semibold text-slate-800 mb-3 sm:mb-4">Campaign Effectiveness</h3>
+                    <div class="h-48 sm:h-64">
+                        <canvas id="resultChart"></canvas>
+                    </div>
+                </div>
 
                 <!-- Slider + OOH Recommendation -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
@@ -293,31 +318,6 @@
                             <p id="new-ooh-dollar" class="text-xl sm:text-2xl font-black text-brand-500 mt-0.5">$0</p>
                             <p class="text-[10px] sm:text-xs text-slate-400">on OOH</p>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Stat Cards -->
-                <div class="grid grid-cols-3 gap-2 sm:gap-3">
-                    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-4">
-                        <p class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase mb-1">Current</p>
-                        <p id="res-orig-total" class="text-sm sm:text-lg font-bold text-slate-800">$0</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-4 text-white">
-                        <p class="text-[10px] sm:text-xs font-medium text-brand-200 uppercase mb-1">Optimized</p>
-                        <p id="res-opt-total" class="text-sm sm:text-lg font-bold">$0</p>
-                    </div>
-                    <!-- Lift card: dynamically styled by JS -->
-                    <div id="lift-card" class="bg-white rounded-xl sm:rounded-2xl shadow-sm border-2 border-emerald-200 p-3 sm:p-4">
-                        <p id="lift-label" class="text-[10px] sm:text-xs font-medium text-emerald-500 uppercase mb-1">Effectiveness Gain</p>
-                        <p id="res-lift" class="text-sm sm:text-lg font-bold text-emerald-700">$0</p>
-                    </div>
-                </div>
-
-                <!-- Chart -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
-                    <h3 class="text-xs sm:text-sm font-semibold text-slate-800 mb-3 sm:mb-4">Campaign Effectiveness</h3>
-                    <div class="h-48 sm:h-64">
-                        <canvas id="resultChart"></canvas>
                     </div>
                 </div>
             </div>
