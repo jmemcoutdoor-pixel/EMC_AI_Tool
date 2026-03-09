@@ -201,7 +201,7 @@
                         <!-- OOH (same style as others) -->
                         <div class="channel-card flex items-center gap-2 sm:gap-3 bg-slate-50 rounded-xl p-2 sm:p-3 border border-slate-100">
                             <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-200 flex items-center justify-center flex-shrink-0" title="OOH">
-                                <i class="fa-solid fa-rectangle-ad text-slate-600 text-xs sm:text-sm"></i>
+                                <i class="fa-solid fa-signs-post text-slate-600 text-xs sm:text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <label class="block text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-0.5">OOH</label>
@@ -226,6 +226,38 @@
                         <span id="total-budget" class="text-base sm:text-lg font-bold text-slate-800">$0</span>
                     </div>
                 </div>
+
+                <!-- Boost Breakdown -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+                    <h3 class="text-xs sm:text-sm font-semibold text-slate-800 mb-3 sm:mb-4">OOH Amplification by Channel</h3>
+                    <div class="grid grid-cols-4 gap-2 sm:gap-3">
+                        <div class="text-center p-2 sm:p-3 bg-indigo-50 rounded-xl">
+                            <i class="fa-solid fa-tv text-indigo-500 text-xs sm:text-base mb-0.5 sm:mb-1"></i>
+                            <p class="text-[10px] sm:text-xs text-slate-500">TV</p>
+                            <p class="text-sm sm:text-lg font-bold text-indigo-600">+33%</p>
+                        </div>
+                        <div class="text-center p-2 sm:p-3 bg-cyan-50 rounded-xl">
+                            <i class="fa-solid fa-globe text-cyan-500 text-xs sm:text-base mb-0.5 sm:mb-1"></i>
+                            <p class="text-[10px] sm:text-xs text-slate-500">Digital</p>
+                            <p class="text-sm sm:text-lg font-bold text-cyan-600">+17%</p>
+                        </div>
+                        <div class="text-center p-2 sm:p-3 bg-amber-50 rounded-xl">
+                            <i class="fa-solid fa-newspaper text-amber-500 text-xs sm:text-base mb-0.5 sm:mb-1"></i>
+                            <p class="text-[10px] sm:text-xs text-slate-500">Print</p>
+                            <p class="text-sm sm:text-lg font-bold text-amber-600">+14%</p>
+                        </div>
+                        <div class="text-center p-2 sm:p-3 bg-rose-50 rounded-xl">
+                            <i class="fa-solid fa-radio text-rose-500 text-xs sm:text-base mb-0.5 sm:mb-1"></i>
+                            <p class="text-[10px] sm:text-xs text-slate-500">Radio</p>
+                            <p class="text-sm sm:text-lg font-bold text-rose-600">+17%</p>
+                        </div>
+                    </div>
+                    <p class="text-[10px] sm:text-xs text-slate-400 text-center mt-2 sm:mt-3">Maximum amplification at 14% OOH allocation</p>
+                </div>
+            </div>
+
+            <!-- Right Column: Slider + Results -->
+            <div class="lg:col-span-5 space-y-4 sm:space-y-6">
 
                 <!-- Slider + OOH Recommendation -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
@@ -263,10 +295,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Right Column: Results -->
-            <div class="lg:col-span-5 space-y-4 sm:space-y-6">
 
                 <!-- Stat Cards -->
                 <div class="grid grid-cols-3 gap-2 sm:gap-3">
@@ -278,8 +306,9 @@
                         <p class="text-[10px] sm:text-xs font-medium text-brand-200 uppercase mb-1">Optimized</p>
                         <p id="res-opt-total" class="text-sm sm:text-lg font-bold">$0</p>
                     </div>
-                    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border-2 border-emerald-200 p-3 sm:p-4">
-                        <p class="text-[10px] sm:text-xs font-medium text-emerald-500 uppercase mb-1">Lift</p>
+                    <!-- Lift card: dynamically styled by JS -->
+                    <div id="lift-card" class="bg-white rounded-xl sm:rounded-2xl shadow-sm border-2 border-emerald-200 p-3 sm:p-4">
+                        <p id="lift-label" class="text-[10px] sm:text-xs font-medium text-emerald-500 uppercase mb-1">Effectiveness Gain</p>
                         <p id="res-lift" class="text-sm sm:text-lg font-bold text-emerald-700">$0</p>
                     </div>
                 </div>
@@ -290,34 +319,6 @@
                     <div class="h-48 sm:h-64">
                         <canvas id="resultChart"></canvas>
                     </div>
-                </div>
-
-                <!-- Boost Breakdown -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
-                    <h3 class="text-xs sm:text-sm font-semibold text-slate-800 mb-3 sm:mb-4">OOH Amplification by Channel</h3>
-                    <div class="grid grid-cols-4 gap-2 sm:gap-3">
-                        <div class="text-center p-2 sm:p-3 bg-indigo-50 rounded-xl">
-                            <i class="fa-solid fa-tv text-indigo-500 text-xs sm:text-base mb-0.5 sm:mb-1"></i>
-                            <p class="text-[10px] sm:text-xs text-slate-500">TV</p>
-                            <p class="text-sm sm:text-lg font-bold text-indigo-600">+33%</p>
-                        </div>
-                        <div class="text-center p-2 sm:p-3 bg-cyan-50 rounded-xl">
-                            <i class="fa-solid fa-globe text-cyan-500 text-xs sm:text-base mb-0.5 sm:mb-1"></i>
-                            <p class="text-[10px] sm:text-xs text-slate-500">Digital</p>
-                            <p class="text-sm sm:text-lg font-bold text-cyan-600">+17%</p>
-                        </div>
-                        <div class="text-center p-2 sm:p-3 bg-amber-50 rounded-xl">
-                            <i class="fa-solid fa-newspaper text-amber-500 text-xs sm:text-base mb-0.5 sm:mb-1"></i>
-                            <p class="text-[10px] sm:text-xs text-slate-500">Print</p>
-                            <p class="text-sm sm:text-lg font-bold text-amber-600">+14%</p>
-                        </div>
-                        <div class="text-center p-2 sm:p-3 bg-rose-50 rounded-xl">
-                            <i class="fa-solid fa-radio text-rose-500 text-xs sm:text-base mb-0.5 sm:mb-1"></i>
-                            <p class="text-[10px] sm:text-xs text-slate-500">Radio</p>
-                            <p class="text-sm sm:text-lg font-bold text-rose-600">+17%</p>
-                        </div>
-                    </div>
-                    <p class="text-[10px] sm:text-xs text-slate-400 text-center mt-2 sm:mt-3">Maximum amplification at 14% OOH allocation</p>
                 </div>
             </div>
         </div>
@@ -424,7 +425,28 @@
             const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
             document.getElementById('res-orig-total').innerText = formatter.format(origEffect);
             document.getElementById('res-opt-total').innerText = formatter.format(newEffect);
-            document.getElementById('res-lift').innerText = formatter.format(newEffect - origEffect);
+
+            // Lift card: handle negative (slider below current OOH %)
+            const lift = newEffect - origEffect;
+            const liftCard = document.getElementById('lift-card');
+            const liftLabel = document.getElementById('lift-label');
+            const liftValue = document.getElementById('res-lift');
+
+            if (lift < 0) {
+                // Negative: warning state
+                liftCard.className = 'bg-amber-50 rounded-xl sm:rounded-2xl shadow-sm border-2 border-amber-300 p-3 sm:p-4';
+                liftLabel.className = 'text-[10px] sm:text-xs font-medium text-amber-600 uppercase mb-1';
+                liftLabel.innerText = 'Below Optimal';
+                liftValue.className = 'text-sm sm:text-lg font-bold text-amber-700';
+                liftValue.innerText = formatter.format(lift);
+            } else {
+                // Positive: green state
+                liftCard.className = 'bg-white rounded-xl sm:rounded-2xl shadow-sm border-2 border-emerald-200 p-3 sm:p-4';
+                liftLabel.className = 'text-[10px] sm:text-xs font-medium text-emerald-500 uppercase mb-1';
+                liftLabel.innerText = 'Effectiveness Gain';
+                liftValue.className = 'text-sm sm:text-lg font-bold text-emerald-700';
+                liftValue.innerText = formatter.format(lift);
+            }
 
             updateChart(origEffect, newEffect);
         }
