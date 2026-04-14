@@ -511,21 +511,6 @@
         });
 
         calculate();
-
-        // Broadcast our height to any parent frame so it can resize the iframe to fit.
-        function postHeight() {
-            const h = Math.max(
-                document.body.scrollHeight,
-                document.documentElement.scrollHeight
-            );
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ type: 'emc-ooh-tool-height', height: h }, '*');
-            }
-        }
-        window.addEventListener('load', postHeight);
-        window.addEventListener('resize', postHeight);
-        const _ro = new ResizeObserver(postHeight);
-        _ro.observe(document.body);
     </script>
 </body>
 </html>
