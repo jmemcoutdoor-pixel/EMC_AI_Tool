@@ -79,6 +79,7 @@ def build_xlsx(rows):
     # ---------- Read Me ----------
     ws = wb.active; ws.title = 'Read Me'
     ws.sheet_view.showGridLines = False
+    ws.page_setup.fitToWidth = 1; ws.page_setup.fitToHeight = 0; ws.sheet_properties.pageSetUpPr.fitToPage = True
     if os.path.exists(LOGO):
         img = XLImage(LOGO); img.width, img.height = 218, 48; ws.add_image(img, 'B2')
     ws['B6'] = 'Wilkins Media - Military On-Base Advertising Rate Card (MASTER)'; ws['B6'].font = Font(bold=True, size=16, color=NAVY)

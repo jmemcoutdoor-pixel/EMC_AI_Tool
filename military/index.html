@@ -249,6 +249,14 @@ function prodStandard(r) {
   return null;
 }
 
+/** Screen / unit count implied by a digital option's description ("on 130 digital monitors", "22 bowling scoring monitors"). */
+function screensFromDesc(r) {
+  if (r.category !== 'Digital') return null;
+  const t = (r.description || '') + ' ' + (r.media_type || '');
+  const m = t.match(/(\d{1,4})\s+(?:approved\s+|indoor\s+|outdoor\s+|digital\s+|bowling\s+|installation\s+|on-base\s+)*(?:digital|monitor|screen|kiosk|display|tv|television|marquee|lane|gate|location|facilit)/i);
+  return m ? +m[1] : null;
+}
+
 /** Full priced line: per-unit and extended client / vendor / production. */
 function priceLine(r, line) {
   const qty = Math.max(1, +(line && line.qty) || 1);
@@ -263,7 +271,7 @@ function priceLine(r, line) {
     if (r.vendor_production > 0) { prodCost = r.vendor_production * qty; prodClient = clientFromVendor(r.vendor_production) * qty; prodLabel = 'per rate card'; }
     else { const ps = prodStandard(r); if (ps) { prodCost = ps.cost * qty; prodClient = ps.client * qty; prodLabel = ps.label; } else { prodLabel = 'inquire'; } }
   }
-  return { qty, vendorUnit, clientUnit, media, vendorExt, prodClient, prodCost, prodLabel, basis: vf.basis, minTerm: vf.minTerm, manualPrice: line && line.price != null, manualVendor: vf.manual };
+  const screens = screensFromDesc(r); return { qty, screens, units: screens ? screens * qty : qty, vendorUnit, clientUnit, media, vendorExt, prodClient, prodCost, prodLabel, basis: vf.basis, minTerm: vf.minTerm, manualPrice: line && line.price != null, manualVendor: vf.manual };
 }
 
 /* Map a media option to a column on the (wide) media plan grid. */
@@ -420,6 +428,7 @@ function renderLine(r, catKey, internal) {
           <span class="text-sm font-medium">${esc(r.media_type)}</span>
           ${r.ad_unit_size ? `<span class="text-[11px] text-slate-500 bg-slate-100 rounded px-1.5">${esc(r.ad_unit_size)}</span>` : ''}
           ${r.min_term_months > 1 ? `<span class="badge bg-wb-100 text-wb-700">${r.min_term_months}-mo min</span>` : ''}
+          ${pr.screens ? `<span class="badge bg-slate-100 text-slate-600" title="Screen count from the rate card description">${pr.screens} screens</span>` : ''}
           ${noPrice ? '<span class="badge bg-slate-200 text-slate-600">inquire</span>' : ''}
           ${old ? `<span class="badge bg-amber-100 text-amber-700">reconfirm ${r.rate_card_year}</span>` : ''}
           ${r.vendor_production > 0 ? `<span class="badge bg-emerald-50 text-emerald-700" title="Production quoted on rate card">prod ${fmt$(clientFromVendor(r.vendor_production))}</span>` : ''}
@@ -540,7 +549,8 @@ async function exportExcel(internal) {
   if (internal) vendorStart = totalCol + 2;               // gap column then vendor block
   const lastCol = internal ? vendorStart + nMedia + 2 : totalCol;   // vendor block + Total Vendor + Profit/Margin... see below
 
-  if (imgId != null) ws.addImage(imgId, { tl: { col: 0.2, row: 0.3 }, ext: { width: 164, height: 36 } });
+  ws.getRow(1).height = 34; ws.getRow(2).height = 8;
+  if (imgId != null) ws.addImage(imgId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 150, height: 33 } });
   ws.getCell('A3').value = 'Military Media Plan'; ws.getCell('A3').font = { bold: true, size: 18, color: { argb: XL.navy } };
   ws.getCell('A4').value = `Prepared for ${client}`; ws.getCell('A4').font = { size: 11, color: { argb: XL.grey } };
   ws.getCell('A5').value = `${P.preparedBy ? 'Prepared by ' + P.preparedBy + ' · ' : ''}${new Date(P.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}${internal ? ' · INTERNAL - DO NOT SEND' : ''}`; ws.getCell('A5').font = { size: 10, color: { argb: internal ? 'FFB91C1C' : XL.grey }, bold: internal };
@@ -549,7 +559,7 @@ async function exportExcel(internal) {
   const R1 = 8;   // column header row
   ws.mergeCells(R0, firstMedia, R0, totalCol); const g = ws.getCell(R0, firstMedia); g.value = `${months}-Month Media Investment`; hdrCell(g, XL.blue);
   if (internal) { ws.mergeCells(R0, vendorStart, R0, vendorStart + nMedia + 2); const g2 = ws.getCell(R0, vendorStart); g2.value = `${months}-Month Vendor Cost (Media)`; hdrCell(g2, XL.grey); }
-  fixed.forEach((h, i) => { const c = ws.getCell(R1, i + 1); c.value = h; hdrCell(c); ws.mergeCells(R0, i + 1, R1, i + 1); hdrCell(ws.getCell(R0, i + 1)); });
+  fixed.forEach((h, i) => { ws.mergeCells(R0, i + 1, R1, i + 1); const c = ws.getCell(R0, i + 1); c.value = h; hdrCell(c); hdrCell(ws.getCell(R1, i + 1)); });
   plan.cols.forEach((col, i) => {
     const c = ws.getCell(R1, firstMedia + i * perCol); c.value = `${col} Investment`; hdrCell(c);
     if (showScreens) { const c2 = ws.getCell(R1, firstMedia + i * perCol + 1); c2.value = '# Units / Screens'; hdrCell(c2); }
@@ -570,7 +580,7 @@ async function exportExcel(internal) {
       const its = gB.items.filter(it => it.col === col);
       const inv = its.reduce((s, it) => s + (it.media || 0), 0);
       const ven = its.reduce((s, it) => s + (it.vendorExt || 0), 0);
-      const units = its.reduce((s, it) => s + it.qty, 0);
+      const units = its.reduce((s, it) => s + it.units, 0);
       const anyInq = its.some(it => it.media == null);
       const c = ws.getCell(r, firstMedia + i * perCol); c.value = its.length ? (inv || (anyInq ? 'Inquire' : 0)) : 0; bodyCell(c, { money: typeof c.value === 'number' });
       if (showScreens) { const u = ws.getCell(r, firstMedia + i * perCol + 1); u.value = its.length ? units : 0; bodyCell(u, { int: true }); }
@@ -629,14 +639,14 @@ async function exportExcel(internal) {
 
   /* ---------------- Line Item Detail ---------------- */
   const wd = wb.addWorksheet('Line Item Detail', { views: [{ showGridLines: false, state: 'frozen', ySplit: 1 }] });
-  const heads = ['State', 'Base', 'Branch', 'Category', 'Media', 'Ad Unit Size', 'Description', 'Qty', 'Pricing Basis', 'Media Investment', 'Production', 'Line Total', 'Notes'];
+  const heads = ['State', 'Base', 'Branch', 'Category', 'Media', 'Ad Unit Size', 'Description', 'Qty (Units / Screens)', 'Pricing Basis', 'Media Investment', 'Production', 'Line Total', 'Notes'];
   if (internal) heads.push('Vendor Media Cost', 'Vendor Production', 'Profit', 'Margin %', 'Rate Card Year', 'Rate Card Notes', 'Review Flag');
   heads.forEach((h, i) => { const c = wd.getCell(1, i + 1); c.value = h; hdrCell(c); });
   wd.getRow(1).height = 30;
   let rr = 2;
   for (const it of plan.items) {
     const total = (it.media || 0) + (it.prodClient || 0);
-    const vals = [it.b.state, it.b.base, it.b.branch, it.r.category, it.r.media_type, it.r.ad_unit_size || '', it.r.description || '', it.qty, it.basis, it.media == null ? 'Inquire' : it.media, it.line.prod ? (it.prodClient || 'Inquire') : '', it.media == null ? 'Inquire' : total, [it.line.note, it.minTerm ? `${it.minTerm}-month minimum` : '', it.manualPrice ? 'client price entered manually' : ''].filter(Boolean).join('; ')];
+    const vals = [it.b.state, it.b.base, it.b.branch, it.r.category, it.r.media_type, it.r.ad_unit_size || '', it.r.description || '', it.units, it.basis, it.media == null ? 'Inquire' : it.media, it.line.prod ? (it.prodClient || 'Inquire') : '', it.media == null ? 'Inquire' : total, [it.line.note, it.minTerm ? `${it.minTerm}-month minimum` : '', it.manualPrice ? 'client price entered manually' : ''].filter(Boolean).join('; ')];
     if (internal) vals.push(it.vendorExt ?? '', it.line.prod ? (it.prodCost || '') : '', it.media == null ? '' : total - (it.vendorExt || 0) - (it.prodCost || 0), it.media ? (total - (it.vendorExt || 0) - (it.prodCost || 0)) / total : '', it.r.rate_card_year || '', it.r.notes || '', it.r.review || '');
     vals.forEach((v, i) => { const c = wd.getCell(rr, i + 1); c.value = v; const money = [9, 10, 11, 13, 14, 15].includes(i) && typeof v === 'number'; bodyCell(c, { wrap: [6, 8, 12, 18, 19].includes(i), money, int: i === 7 }); if (i === 16 && typeof v === 'number') { c.numFmt = '0%'; c.alignment.horizontal = 'right'; } });
     rr++;
