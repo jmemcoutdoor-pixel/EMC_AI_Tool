@@ -9,14 +9,20 @@ military/
 ├── index.html                                 the app (static page, no build step)
 ├── dist/Wilkins Military Proposal Builder.html one-file copy of the app (data + logos inlined) - save this in Box
 ├── Wilkins Military Rate Card - MASTER.xlsx   the standardized rate card David's team maintains
+├── DESIGN.md                                  design tokens and component rules the app follows
+├── audit/                                     Box folders vs. rate card audit (xlsx + README + raw listing)
 ├── data/
 │   ├── rate_card.csv                          same data, one row per media option (source of truth for the build)
 │   ├── rate_card.js                           generated copy embedded in the app
-│   └── source_master_export_12.2.25.json      raw export of the old Box master (traceability only)
+│   ├── source_master_export_12.2.25.json      raw export of the old Box master (traceability only)
+│   ├── source_digital_inventory_6.3.26.txt    raw export of the June 2026 digital inventory master
+│   └── source_publication_inventory_june2026.txt  raw export of the June 2026 publication inventory master
 ├── tools/
-│   ├── standardize.py                         one-time: raw Box export -> rate_card.csv
-│   ├── build_rate_card.py                     rate_card.csv -> MASTER.xlsx + rate_card.js
-│   └── build_standalone.py                    index.html + data + logos -> dist/ one-file app
+│   ├── standardize.py                         step 1: raw Box master export -> rate_card.csv
+│   ├── merge_inventory.py                     step 1b: fold the June 2026 inventory masters into rate_card.csv
+│   ├── build_rate_card.py                     step 2: rate_card.csv -> MASTER.xlsx + rate_card.js
+│   ├── build_standalone.py                    index.html + data + logos -> dist/ one-file app
+│   └── box_audit.py                           audit/box_listing_<date>.json + rate_card.csv -> audit workbook
 └── assets/                                    Wilkins logos
 ```
 
@@ -25,6 +31,10 @@ military/
 * **Rate card**: Box > Military > Master Grid > `MasterMilitaryOnBaseList 12.2.25 NS.xlsx`
   (1,238 media options across ~100 domestic installations). Vendor (base) cost at 1 / 3 / 6 / 12
   months plus production, cleaned and categorized.
+* **June 2026 inventory masters**: Box > Military > `Military - National Digital Inventory Master 6.3.26.xlsx`
+  and `Military - National Publication Inventory Master_June 2026.xlsx`. They are newer than the
+  12.2.25 master and cover ~60 more bases; 296 options were added from them (source column says which)
+  and 204 existing rows carry a note where the inventory price differs.
 * **Base populations (reference)**: Box > Military > `Military - National Digital Inventory Master 6.3.26.xlsx`.
 * **Pricing rules**: David's Sep 18 / 22 / 23 / 24 2026 calls with Jon and Chelsea (Fireflies).
 
@@ -65,6 +75,12 @@ still exists for baking a new rate card into the app itself.
 
 Jon asked that this not live in the shared Box > Military folder. Box folder **Military Rate Card Tool**
 (Jon's own drive) holds the master rate card and the one-file app; the code lives in this repo.
+
+## Box folders vs. the rate card
+
+`audit/` holds a comparison of every per-base folder in Box > Military > 2 Military Installations
+against the rate card (listing pulled Sep 28, 2026). Rebuild with `python3 tools/box_audit.py <date>`
+after saving a fresh listing. See `audit/README.md` for the verdicts.
 
 ## Known gaps / follow-ups
 
