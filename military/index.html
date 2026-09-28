@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wilkins Media | Military Proposal Builder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="data/rate_card.js"></script>
+<script>
+tailwind.config = { theme: { extend: { colors: {
+  navy: { 900:'#141c30', 800:'#1f2a44', 700:'#2b3a5c', 100:'#e6eaf2' },
+  wb: { 50:'#eef7fd', 100:'#d6ecfb', 200:'#a8d8f7', 400:'#33a8ea', 500:'#0092e4', 600:'#0077bb', 700:'#005f95' }
+}}}};
+</script>
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .num { font-variant-numeric: tabular-nums; }
+  .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scroll-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+  .chip { transition: all .12s; }
+  .chip.on { background:#0092e4; color:#fff; border-color:#0092e4; }
+  input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+  .line-row:hover { background: #f8fafc; }
+  .line-row.on { background: #eef7fd; }
+  .cat-Digital { border-left-color:#0092e4; } .cat-Standard { border-left-color:#72c953; }
+  .cat-Large { border-left-color:#ffa47a; } .cat-Print { border-left-color:#a78bfa; }
+  .cat-Web { border-left-color:#00b2f2; } .cat-Sponsorship { border-left-color:#9ca3af; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  .badge { font-size: 10px; padding: 1px 6px; border-radius: 999px; font-weight: 600; letter-spacing: .02em; }
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+<!-- Header -->
+<header class="bg-navy-800 text-white shadow-lg no-print">
+  <div class="max-w-[1700px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+    <img src="assets/wilkins-logo-white.png" alt="Wilkins Media" class="h-6 w-auto">
+    <div class="hidden sm:block w-px h-8 bg-white/30"></div>
+    <div class="flex-1 min-w-[200px]">
+      <h1 class="text-lg font-bold leading-tight">Military Proposal Builder</h1>
+      <p class="text-xs text-navy-100/80">Pick bases, check the media, export client + internal Excel.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 text-sm">
+      <label class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 cursor-pointer" title="Load an edited 'Wilkins Military Rate Card - MASTER.xlsx' to replace the built-in rate card">
+        <i class="fa-solid fa-file-arrow-up"></i><span>Load rate card</span>
+        <input id="rateCardFile" type="file" accept=".xlsx,.csv" class="hidden">
+      </label>
+      <button id="btnSave" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5"><i class="fa-solid fa-floppy-disk"></i>Save proposal</button>
+      <label class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 cursor-pointer"><i class="fa-solid fa-folder-open"></i>Open<input id="proposalFile" type="file" accept=".json" class="hidden"></label>
+      <button id="btnNew" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5"><i class="fa-solid fa-plus"></i>New</button>
+    </div>
+  </div>
+  <div id="dataBar" class="bg-navy-900/60 text-[11px] text-navy-100/70 px-4 py-1 text-center"></div>
+</header>
+
+<main class="max-w-[1700px] mx-auto p-3 sm:p-4 grid grid-cols-1 xl:grid-cols-12 gap-4">
+
+  <!-- LEFT: Targeting -->
+  <section class="xl:col-span-3 space-y-3">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-7 h-7 rounded-full bg-wb-100 text-wb-700 flex items-center justify-center text-xs font-bold">1</div>
+        <h2 class="font-semibold">Target installations</h2>
+      </div>
+      <div class="relative mb-3">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input id="search" type="text" placeholder="Search base, state, DMA, branch…" class="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-wb-500">
+      </div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">By state</span>
+        <button id="clearStates" class="text-[11px] text-wb-600 hover:underline">clear</button>
+      </div>
+      <div id="stateChips" class="flex flex-wrap gap-1 mb-3"></div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Bases <span id="baseCount" class="text-slate-400 font-normal"></span></span>
+        <div class="flex gap-2">
+          <button id="selectAllBases" class="text-[11px] text-wb-600 hover:underline">select shown</button>
+          <button id="clearBases" class="text-[11px] text-slate-500 hover:underline">clear</button>
+        </div>
+      </div>
+      <div id="baseList" class="max-h-[58vh] overflow-y-auto scroll-thin divide-y divide-slate-100 border border-slate-100 rounded-lg"></div>
+    </div>
+  </section>
+
+  <!-- CENTER: Media options -->
+  <section class="xl:col-span-6 space-y-3">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+      <div class="flex flex-wrap items-center gap-3 mb-2">
+        <div class="w-7 h-7 rounded-full bg-wb-100 text-wb-700 flex items-center justify-center text-xs font-bold">2</div>
+        <h2 class="font-semibold">Media options</h2>
+        <span id="selSummary" class="text-xs text-slate-500"></span>
+        <div class="ml-auto flex flex-wrap items-center gap-3 text-xs">
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="showInternal" class="accent-wb-500" checked><span>Show vendor cost &amp; margin</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="onlySelected" class="accent-wb-500"><span>Only checked</span></label>
+        </div>
+      </div>
+      <div id="catFilter" class="flex flex-wrap gap-1 mb-3"></div>
+      <div id="mediaPanel" class="space-y-4"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: Proposal -->
+  <section class="xl:col-span-3 space-y-3">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-7 h-7 rounded-full bg-wb-100 text-wb-700 flex items-center justify-center text-xs font-bold">3</div>
+        <h2 class="font-semibold">Proposal</h2>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <label class="col-span-2 text-xs text-slate-500">Client<input id="clientName" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm" placeholder="e.g. UMGC"></label>
+        <label class="text-xs text-slate-500">Prepared by<input id="preparedBy" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm" placeholder="Name"></label>
+        <label class="text-xs text-slate-500">Date<input id="propDate" type="date" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm"></label>
+        <label class="text-xs text-slate-500">Flight length (months)<input id="months" type="number" min="1" max="36" step="0.5" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm num"></label>
+        <label class="text-xs text-slate-500">Pricing method
+          <select id="method" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm">
+            <option value="monthly">Monthly rate × months (standard)</option>
+            <option value="term">Rate-card term price (1/3/6/12)</option>
+          </select></label>
+      </div>
+
+      <div class="mt-3 border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-sm">
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="marginOn" class="accent-wb-500" checked><span class="font-medium">Apply military markup</span></label>
+        <div id="marginBox" class="grid grid-cols-2 gap-2 pl-6">
+          <label class="text-xs text-slate-500">Margin %<input id="marginPct" type="number" min="0" max="90" step="1" value="50" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1 text-sm num"></label>
+          <label class="text-xs text-slate-500">Basis
+            <select id="marginMode" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1 text-sm">
+              <option value="margin">Margin on price (50% = ×2)</option>
+              <option value="markup">Markup on cost (50% = ×1.5)</option>
+            </select></label>
+          <label class="text-xs text-slate-500">Round to<select id="roundTo" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1 text-sm"><option value="25">nearest $25</option><option value="5">nearest $5</option><option value="1">whole dollars</option><option value="0">no rounding</option></select></label>
+          <div class="text-[11px] text-slate-500 self-end pb-1">Vendor $600 → <b id="marginExample" class="text-slate-700"></b></div>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="prodOn" class="accent-wb-500"><span class="font-medium">Include production on checked items</span></label>
+        <div id="prodBox" class="grid grid-cols-2 gap-2 pl-6">
+          <label class="text-xs text-slate-500">Poster 22×28<input id="prodPoster" type="number" step="5" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1 text-sm num"></label>
+          <label class="text-xs text-slate-500">Banner 3×6<input id="prodBanner" type="number" step="5" class="mt-0.5 w-full border border-slate-200 rounded-lg px-2 py-1 text-sm num"></label>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="showPop" class="accent-wb-500" checked><span>Show base population in export</span></label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="showScreens" class="accent-wb-500" checked><span>Show # units / screens in export</span></label>
+      </div>
+
+      <div id="summary" class="mt-3"></div>
+
+      <div class="mt-3 grid grid-cols-1 gap-2">
+        <button id="exportClient" class="w-full inline-flex items-center justify-center gap-2 bg-wb-500 hover:bg-wb-600 text-white font-semibold rounded-xl px-3 py-2.5 text-sm disabled:opacity-40"><i class="fa-solid fa-file-excel"></i>Export client Excel</button>
+        <button id="exportInternal" class="w-full inline-flex items-center justify-center gap-2 bg-navy-800 hover:bg-navy-700 text-white font-semibold rounded-xl px-3 py-2.5 text-sm disabled:opacity-40"><i class="fa-solid fa-file-excel"></i>Export internal Excel</button>
+        <p class="text-[11px] text-slate-500 text-center">Client file has prices only (hard-coded, no vendor cost). Internal file adds vendor cost, profit and margin.</p>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 text-xs text-slate-600 space-y-1">
+      <p class="font-semibold text-slate-700">House rules baked in</p>
+      <ul class="list-disc pl-4 space-y-0.5">
+        <li>Default 3-month flight; standard price = 1-month vendor rate × months, marked up.</li>
+        <li>Items with no 1-month rate use their shortest term (e.g. 3-mo minimum) scaled to the flight.</li>
+        <li>Production is never included unless you check it; standard $100 poster / $350 banner, other sizes inquire.</li>
+        <li>Rate cards older than 2025 are flagged <span class="badge bg-amber-100 text-amber-700">reconfirm</span>; items with no cost show <span class="badge bg-slate-200 text-slate-600">inquire</span> and can be priced by hand.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-navy-800 text-white text-sm px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity pointer-events-none"></div>
+
+<script>
+/* =========================================================================
+   Data
+   ========================================================================= */
+const CATS = ['Digital','Standard Media','Large Format','Print & Publications','Web & Email','Sponsorship & Other'];
+const TERMS = [[1,'vendor_1mo'],[3,'vendor_3mo'],[6,'vendor_6mo'],[12,'vendor_12mo']];
+let RC = window.WILKINS_RATE_CARD || { rows: [], settings: {}, source: 'none', generated: '' };
+let ROWS = [], BASES = new Map();
+
+function indexData() {
+  ROWS = RC.rows.map(r => Object.assign({}, r));
+  BASES = new Map();
+  for (const r of ROWS) {
+    r.baseKey = (r.state || 'XX') + '|' + r.base;
+    let b = BASES.get(r.baseKey);
+    if (!b) { b = { key: r.baseKey, base: r.base, aka: r.aka || '', state: r.state || '', dma: r.dma || '', zip: r.zip || '', branch: r.branch || '', ad: r.active_duty, dep: r.dependents, rows: [], years: new Set() }; BASES.set(r.baseKey, b); }
+    b.rows.push(r);
+    if (r.rate_card_year) b.years.add(String(r.rate_card_year));
+    if (!b.ad && r.active_duty) b.ad = r.active_duty;
+    if (!b.dep && r.dependents) b.dep = r.dependents;
+  }
+  document.getElementById('dataBar').textContent = `Rate card: ${RC.source} · ${ROWS.length} media options · ${BASES.size} installations · data as of ${RC.generated || 'n/a'}`;
+}
+
+/* =========================================================================
+   Proposal state
+   ========================================================================= */
+const S = RC.settings || {};
+let P = defaultProposal();
+function defaultProposal() {
+  return {
+    client: '', preparedBy: '', date: new Date().toISOString().slice(0,10),
+    months: S.defaultMonths || 3, method: 'monthly',
+    marginOn: true, marginPct: Math.round((S.margin || 0.5) * 100), marginMode: 'margin', roundTo: S.roundTo ?? 25,
+    prodOn: false, prodPoster: S.prodPosterClient || 100, prodBanner: S.prodBannerClient || 350,
+    showPop: true, showScreens: true,
+    selectedStates: [], selectedBases: [], lines: {}   // lines[rowId] = {qty, term, prod, price, vendor, note}
+  };
+}
+const UI = { search: '', catFilter: null, showInternal: true, onlySelected: false };
+
+/* =========================================================================
+   Pricing engine
+   ========================================================================= */
+function fmt$(n, dash = '—') { if (n == null || isNaN(n)) return dash; return '$' + Math.round(n).toLocaleString('en-US'); }
+function roundTo(n, step) { if (!step) return n; return Math.round(n / step) * step; }
+function factor() {
+  if (!P.marginOn) return 1;
+  const m = (+P.marginPct || 0) / 100;
+  return P.marginMode === 'markup' ? (1 + m) : (m >= 1 ? 1 : 1 / (1 - m));
+}
+function clientFromVendor(v) { if (v == null) return null; return roundTo(v * factor(), P.marginOn ? +P.roundTo : 0); }
+
+/** Vendor cost for one unit over the flight, plus a text description of the basis. */
+function vendorForFlight(r, line) {
+  const months = +P.months || 1;
+  const avail = TERMS.filter(([t, k]) => r[k] != null && r[k] > 0);
+  if (line && line.vendor != null) return { vendor: line.vendor, basis: 'manual vendor cost', manual: true };
+  if (!avail.length) return { vendor: null, basis: 'no cost on file — inquire' };
+  const termWanted = line && line.term ? +line.term : null;
+  if (termWanted) {
+    const hit = avail.find(([t]) => t === termWanted);
+    if (hit) return { vendor: r[hit[1]], basis: `${termWanted}-month rate-card price`, term: termWanted };
+  }
+  if (P.method === 'term') {
+    const hit = avail.find(([t]) => t === months);
+    if (hit) return { vendor: r[hit[1]], basis: `${months}-month rate-card price`, term: months };
+  }
+  const one = avail.find(([t]) => t === 1);
+  if (one) return { vendor: r.vendor_1mo * months, basis: `${fmt$(r.vendor_1mo)}/mo × ${months}`, term: 1 };
+  const [t, k] = avail[0];
+  if (months <= t) return { vendor: r[k], basis: `${t}-month minimum (${fmt$(r[k])})`, term: t, minTerm: t };
+  const mult = months / t;
+  return { vendor: r[k] * mult, basis: `${t}-mo rate ${fmt$(r[k])} × ${+mult.toFixed(2)}`, term: t, minTerm: t };
+}
+
+function prodStandard(r) {
+  const m = (r.media_type + ' ' + (r.ad_unit_size || '')).toLowerCase();
+  if (r.category === 'Standard Media' && /poster/.test(m)) return { client: +P.prodPoster, cost: S.prodPosterCost || 50, label: 'Poster 22"W x 28"H' };
+  if (r.category === 'Standard Media' && /banner/.test(m)) return { client: +P.prodBanner, cost: S.prodBannerCost || 96, label: 'Banner 3\'H x 6\'W' };
+  return null;
+}
+
+/** Full priced line: per-unit and extended client / vendor / production. */
+function priceLine(r, line) {
+  const qty = Math.max(1, +(line && line.qty) || 1);
+  const vf = vendorForFlight(r, line);
+  const vendorUnit = vf.vendor;
+  let clientUnit = (line && line.price != null) ? line.price : clientFromVendor(vendorUnit);
+  const media = clientUnit != null ? clientUnit * qty : null;
+  const vendorExt = vendorUnit != null ? vendorUnit * qty : null;
+  let prodClient = 0, prodCost = 0, prodLabel = '';
+  const wantProd = line && line.prod;
+  if (wantProd) {
+    if (r.vendor_production > 0) { prodCost = r.vendor_production * qty; prodClient = clientFromVendor(r.vendor_production) * qty; prodLabel = 'per rate card'; }
+    else { const ps = prodStandard(r); if (ps) { prodCost = ps.cost * qty; prodClient = ps.client * qty; prodLabel = ps.label; } else { prodLabel = 'inquire'; } }
+  }
+  return { qty, vendorUnit, clientUnit, media, vendorExt, prodClient, prodCost, prodLabel, basis: vf.basis, minTerm: vf.minTerm, manualPrice: line && line.price != null, manualVendor: vf.manual };
+}
+
+/* Map a media option to a column on the (wide) media plan grid. */
+function planColumn(r) {
+  const m = r.media_type.toLowerCase();
+  if (r.category === 'Digital') {
+    if (/kiosk/.test(m)) return 'Digital Kiosk Network';
+    if (/bowling|lane|sweep|pin|rake|masking|swing/.test(m)) return 'Bowling Monitors';
+    if (/marquee|signage/.test(m)) return 'Digital Marquee';
+    if (/theat|cinema|movie|commercial|preview/.test(m)) return 'Movie Theater';
+    if (/billboard/.test(m)) return 'Digital Billboard';
+    return 'Digital Monitor Network';
+  }
+  if (r.category === 'Standard Media') {
+    if (/vertical|pop.?up|retract|standee/.test(m)) return 'Vertical / Pop-Up Banner';
+    if (/banner/.test(m)) return 'Banner';
+    if (/poster/.test(m)) return 'Poster';
+    if (/table tent|tent/.test(m)) return 'Table Tents';
+    if (/golf|tee|driving|range/.test(m)) return 'Golf Course';
+    return 'Standard Media - Other';
+  }
+  if (r.category === 'Large Format') {
+    if (/counter/.test(m)) return 'Counter Wrap';
+    if (/window|wall|floor|cling|wrap|graphic/.test(m)) return 'Wall / Window Cling';
+    return 'Large Format Banner';
+  }
+  if (r.category === 'Print & Publications') return 'Publication Ad';
+  if (r.category === 'Web & Email') return 'Web / Email / Social';
+  return 'Sponsorship / Other';
+}
+
+/* =========================================================================
+   Rendering: targeting
+   ========================================================================= */
+function stateCounts() {
+  const c = new Map();
+  for (const b of BASES.values()) c.set(b.state || '—', (c.get(b.state || '—') || 0) + 1);
+  return [...c.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+function renderStates() {
+  const el = document.getElementById('stateChips'); el.innerHTML = '';
+  for (const [st, n] of stateCounts()) {
+    const b = document.createElement('button');
+    b.className = 'chip text-[11px] px-2 py-0.5 rounded-full border border-slate-200 bg-white hover:border-wb-400' + (P.selectedStates.includes(st) ? ' on' : '');
+    b.innerHTML = `${st} <span class="opacity-60">${n}</span>`;
+    b.onclick = () => { const i = P.selectedStates.indexOf(st); if (i >= 0) P.selectedStates.splice(i, 1); else P.selectedStates.push(st); renderStates(); renderBases(); save(); };
+    el.appendChild(b);
+  }
+}
+function visibleBases() {
+  const q = UI.search.trim().toLowerCase();
+  let list = [...BASES.values()];
+  if (P.selectedStates.length) list = list.filter(b => P.selectedStates.includes(b.state || '—'));
+  if (q) list = list.filter(b => [b.base, b.aka, b.state, b.dma, b.branch, b.zip].join(' ').toLowerCase().includes(q));
+  return list.sort((a, b) => (a.state || 'zz').localeCompare(b.state || 'zz') || a.base.localeCompare(b.base));
+}
+function renderBases() {
+  const el = document.getElementById('baseList'); el.innerHTML = '';
+  const list = visibleBases();
+  document.getElementById('baseCount').textContent = `(${list.length})`;
+  if (!list.length) { el.innerHTML = '<div class="p-3 text-xs text-slate-400">No installations match.</div>'; }
+  for (const b of list) {
+    const on = P.selectedBases.includes(b.key);
+    const nSel = b.rows.filter(r => P.lines[r.id]).length;
+    const years = [...b.years];
+    const old = years.length && years.every(y => +y < (S.currentYear || 2025));
+    const row = document.createElement('label');
+    row.className = 'flex items-start gap-2 px-2 py-1.5 cursor-pointer hover:bg-slate-50 ' + (on ? 'bg-wb-50' : '');
+    row.innerHTML = `<input type="checkbox" class="mt-1 accent-wb-500" ${on ? 'checked' : ''}>
+      <div class="min-w-0 flex-1">
+        <div class="text-sm font-medium leading-tight truncate">${b.base}${b.aka ? ` <span class="text-[10px] text-slate-400 font-normal">(${b.aka})</span>` : ''}</div>
+        <div class="text-[11px] text-slate-500 truncate">${b.state} · ${b.branch}${b.dma ? ' · ' + b.dma : ''} · ${b.rows.length} options${b.ad ? ' · pop ' + ((+b.ad) + (+b.dep || 0)).toLocaleString() : ''}</div>
+      </div>
+      ${nSel ? `<span class="badge bg-wb-500 text-white mt-1">${nSel}</span>` : ''}${old ? `<span class="badge bg-amber-100 text-amber-700 mt-1" title="Rate card older than 2025">${years.join('/')}</span>` : ''}`;
+    row.querySelector('input').onchange = e => { toggleBase(b.key, e.target.checked); };
+    el.appendChild(row);
+  }
+}
+function toggleBase(key, on) {
+  const i = P.selectedBases.indexOf(key);
+  if (on && i < 0) P.selectedBases.push(key);
+  if (!on && i >= 0) { P.selectedBases.splice(i, 1); for (const r of BASES.get(key).rows) delete P.lines[r.id]; }
+  renderBases(); renderMedia(); renderSummary(); save();
+}
+
+/* =========================================================================
+   Rendering: media options
+   ========================================================================= */
+function renderCatFilter() {
+  const el = document.getElementById('catFilter'); el.innerHTML = '';
+  const all = document.createElement('button'); all.className = 'chip text-[11px] px-2 py-0.5 rounded-full border border-slate-200 bg-white' + (UI.catFilter ? '' : ' on'); all.textContent = 'All categories';
+  all.onclick = () => { UI.catFilter = null; renderCatFilter(); renderMedia(); }; el.appendChild(all);
+  for (const c of CATS) {
+    const b = document.createElement('button'); b.className = 'chip text-[11px] px-2 py-0.5 rounded-full border border-slate-200 bg-white' + (UI.catFilter === c ? ' on' : ''); b.textContent = c;
+    b.onclick = () => { UI.catFilter = UI.catFilter === c ? null : c; renderCatFilter(); renderMedia(); }; el.appendChild(b);
+  }
+}
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+function renderMedia() {
+  const el = document.getElementById('mediaPanel'); el.innerHTML = '';
+  const bases = P.selectedBases.map(k => BASES.get(k)).filter(Boolean).sort((a, b) => a.state.localeCompare(b.state) || a.base.localeCompare(b.base));
+  document.getElementById('selSummary').textContent = bases.length ? `${bases.length} installation${bases.length > 1 ? 's' : ''} · ${Object.keys(P.lines).length} items checked` : '';
+  if (!bases.length) { el.innerHTML = '<div class="text-sm text-slate-400 border border-dashed border-slate-200 rounded-xl p-8 text-center">Select one or more installations on the left to see their media options.</div>'; return; }
+  const internal = UI.showInternal;
+  for (const b of bases) {
+    const card = document.createElement('div');
+    card.className = 'border border-slate-200 rounded-xl overflow-hidden';
+    const pop = b.ad ? `<span class="text-slate-500">Active duty ${(+b.ad).toLocaleString()}${b.dep ? ' · dependents ' + (+b.dep).toLocaleString() : ''}</span>` : '<span class="text-slate-400">population n/a</span>';
+    const years = [...b.years];
+    card.innerHTML = `<div class="bg-navy-100/60 px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div class="font-semibold text-navy-800">${esc(b.base)}</div>
+        <div class="text-xs text-slate-600">${esc(b.state)} · ${esc(b.branch)}${b.dma ? ' · ' + esc(b.dma) : ''}</div>
+        <div class="text-xs">${pop}</div>
+        ${years.length ? `<span class="badge ${years.every(y => +y < (S.currentYear || 2025)) ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}" title="Rate card year on file">card ${years.join('/')}</span>` : '<span class="badge bg-slate-200 text-slate-500" title="No rate card year recorded">year unverified</span>'}
+        <div class="ml-auto flex gap-2 text-[11px]"><button class="text-wb-600 hover:underline" data-act="all">check all digital + standard</button><button class="text-slate-500 hover:underline" data-act="none">uncheck all</button><button class="text-red-500 hover:underline" data-act="remove"><i class="fa-solid fa-xmark"></i> remove</button></div>
+      </div>`;
+    card.querySelector('[data-act=remove]').onclick = () => toggleBase(b.key, false);
+    card.querySelector('[data-act=none]').onclick = () => { for (const r of b.rows) delete P.lines[r.id]; renderMedia(); renderSummary(); renderBases(); save(); };
+    card.querySelector('[data-act=all]').onclick = () => { for (const r of b.rows) if ((r.category === 'Digital' || r.category === 'Standard Media') && !P.lines[r.id] && !r.review?.includes('No price')) P.lines[r.id] = { qty: 1, prod: P.prodOn }; renderMedia(); renderSummary(); renderBases(); save(); };
+
+    const body = document.createElement('div'); body.className = 'divide-y divide-slate-100';
+    for (const cat of CATS) {
+      if (UI.catFilter && UI.catFilter !== cat) continue;
+      let rows = b.rows.filter(r => r.category === cat);
+      if (UI.onlySelected) rows = rows.filter(r => P.lines[r.id]);
+      if (!rows.length) continue;
+      const catKey = cat.split(' ')[0];
+      const det = document.createElement('details'); det.open = cat === 'Digital' || cat === 'Standard Media' || rows.some(r => P.lines[r.id]);
+      det.innerHTML = `<summary class="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 flex items-center gap-2"><i class="fa-solid fa-chevron-right text-[9px] transition-transform"></i>${cat} <span class="font-normal text-slate-400">${rows.length}</span></summary>`;
+      const wrap = document.createElement('div');
+      for (const r of rows) wrap.appendChild(renderLine(r, catKey, internal));
+      det.appendChild(wrap); body.appendChild(det);
+    }
+    card.appendChild(body); el.appendChild(card);
+  }
+  document.querySelectorAll('details').forEach(d => { const ic = d.querySelector('summary i'); const upd = () => ic.style.transform = d.open ? 'rotate(90deg)' : ''; d.addEventListener('toggle', upd); upd(); });
+}
+
+function renderLine(r, catKey, internal) {
+  const line = P.lines[r.id];
+  const on = !!line;
+  const pr = priceLine(r, line || {});
+  const avail = TERMS.filter(([t, k]) => r[k] != null && r[k] > 0);
+  const noPrice = !avail.length && !(line && (line.vendor != null || line.price != null));
+  const old = r.rate_card_year && +r.rate_card_year < (S.currentYear || 2025);
+  const div = document.createElement('div');
+  div.className = `line-row border-l-4 cat-${catKey} px-3 py-2 ${on ? 'on' : ''}`;
+  div.innerHTML = `
+    <div class="flex items-start gap-2">
+      <input type="checkbox" class="mt-1 accent-wb-500 flex-shrink-0" ${on ? 'checked' : ''}>
+      <div class="flex-1 min-w-0">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span class="text-sm font-medium">${esc(r.media_type)}</span>
+          ${r.ad_unit_size ? `<span class="text-[11px] text-slate-500 bg-slate-100 rounded px-1.5">${esc(r.ad_unit_size)}</span>` : ''}
+          ${r.min_term_months > 1 ? `<span class="badge bg-wb-100 text-wb-700">${r.min_term_months}-mo min</span>` : ''}
+          ${noPrice ? '<span class="badge bg-slate-200 text-slate-600">inquire</span>' : ''}
+          ${old ? `<span class="badge bg-amber-100 text-amber-700">reconfirm ${r.rate_card_year}</span>` : ''}
+          ${r.vendor_production > 0 ? `<span class="badge bg-emerald-50 text-emerald-700" title="Production quoted on rate card">prod ${fmt$(clientFromVendor(r.vendor_production))}</span>` : ''}
+        </div>
+        <div class="text-[11px] text-slate-500 leading-snug">${esc(r.description || '')}${r.notes ? ` <span class="text-amber-700">· ${esc(r.notes)}</span>` : ''}</div>
+        ${internal ? `<div class="text-[11px] text-slate-400 num mt-0.5">vendor: ${avail.map(([t, k]) => `${t}mo ${fmt$(r[k])}`).join(' · ') || 'n/a'}${r.vendor_production > 0 ? ' · prod ' + fmt$(r.vendor_production) : ''}</div>` : ''}
+      </div>
+      <div class="text-right flex-shrink-0 num">
+        <div class="text-sm font-semibold ${pr.clientUnit == null ? 'text-slate-400' : 'text-navy-800'}">${pr.media == null ? (noPrice ? 'inquire' : '—') : fmt$(pr.media)}</div>
+        <div class="text-[10px] text-slate-400">${esc(pr.basis)}${pr.qty > 1 ? ' × ' + pr.qty : ''}</div>
+        ${internal && pr.vendorExt != null ? `<div class="text-[10px] text-slate-400">cost ${fmt$(pr.vendorExt)} · profit ${fmt$(pr.media - pr.vendorExt)}</div>` : ''}
+      </div>
+    </div>
+    ${on ? `<div class="mt-1.5 ml-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
+      <label>Qty <input type="number" min="1" step="1" value="${pr.qty}" data-f="qty" class="w-14 border border-slate-200 rounded px-1 py-0.5 num"></label>
+      <label>Term <select data-f="term" class="border border-slate-200 rounded px-1 py-0.5"><option value="">auto</option>${avail.map(([t]) => `<option value="${t}" ${line.term == t ? 'selected' : ''}>${t} mo</option>`).join('')}</select></label>
+      <label class="inline-flex items-center gap-1"><input type="checkbox" data-f="prod" class="accent-wb-500" ${line.prod ? 'checked' : ''}>production${line.prod && pr.prodClient ? ` <b>${fmt$(pr.prodClient)}</b> <span class="text-slate-400">(${esc(pr.prodLabel)})</span>` : line.prod ? ' <span class="text-amber-600">inquire</span>' : ''}</label>
+      ${internal ? `<label>Vendor $ <input type="number" step="1" placeholder="auto" value="${line.vendor ?? ''}" data-f="vendor" class="w-20 border border-slate-200 rounded px-1 py-0.5 num" title="Override vendor cost for the flight (per unit)"></label>` : ''}
+      <label>Client $ <input type="number" step="1" placeholder="auto" value="${line.price ?? ''}" data-f="price" class="w-20 border border-slate-200 rounded px-1 py-0.5 num" title="Override client price for the flight (per unit)"></label>
+      <label class="flex-1 min-w-[140px]">Note <input type="text" value="${esc(line.note || '')}" data-f="note" placeholder="shows in export notes" class="w-full border border-slate-200 rounded px-1 py-0.5"></label>
+    </div>` : ''}`;
+  div.querySelector('input[type=checkbox]').onchange = e => {
+    if (e.target.checked) P.lines[r.id] = { qty: 1, prod: P.prodOn }; else delete P.lines[r.id];
+    renderMedia(); renderSummary(); renderBases(); save();
+  };
+  div.querySelectorAll('[data-f]').forEach(inp => {
+    const f = inp.dataset.f;
+    inp.addEventListener('change', () => {
+      const l = P.lines[r.id]; if (!l) return;
+      if (f === 'qty') l.qty = Math.max(1, parseInt(inp.value) || 1);
+      else if (f === 'term') l.term = inp.value ? +inp.value : null;
+      else if (f === 'prod') l.prod = inp.checked;
+      else if (f === 'vendor') l.vendor = inp.value === '' ? null : +inp.value;
+      else if (f === 'price') l.price = inp.value === '' ? null : +inp.value;
+      else if (f === 'note') l.note = inp.value;
+      renderMedia(); renderSummary(); save();
+    });
+  });
+  return div;
+}
+
+/* =========================================================================
+   Proposal model (shared by summary + exports)
+   ========================================================================= */
+function buildPlan() {
+  const items = [];
+  for (const [id, line] of Object.entries(P.lines)) {
+    const r = ROWS.find(x => x.id === id); if (!r) continue;
+    const b = BASES.get(r.baseKey);
+    items.push(Object.assign({ r, b, line, col: planColumn(r) }, priceLine(r, line)));
+  }
+  items.sort((a, b) => a.b.state.localeCompare(b.b.state) || a.b.base.localeCompare(b.b.base) || CATS.indexOf(a.r.category) - CATS.indexOf(b.r.category));
+  const byBase = new Map();
+  for (const it of items) {
+    let g = byBase.get(it.b.key); if (!g) { g = { b: it.b, items: [], media: 0, vendor: 0, prodClient: 0, prodCost: 0, inquire: 0 }; byBase.set(it.b.key, g); }
+    g.items.push(it);
+    if (it.media != null) { g.media += it.media; g.vendor += it.vendorExt || 0; } else g.inquire++;
+    g.prodClient += it.prodClient || 0; g.prodCost += it.prodCost || 0;
+  }
+  const tot = { media: 0, vendor: 0, prodClient: 0, prodCost: 0, inquire: 0 };
+  for (const g of byBase.values()) { tot.media += g.media; tot.vendor += g.vendor; tot.prodClient += g.prodClient; tot.prodCost += g.prodCost; tot.inquire += g.inquire; }
+  tot.client = tot.media + tot.prodClient; tot.cost = tot.vendor + tot.prodCost; tot.profit = tot.client - tot.cost; tot.marginPct = tot.client ? tot.profit / tot.client : 0;
+  const cols = [...new Set(items.map(i => i.col))];
+  const colOrder = ['Digital Monitor Network','Digital Kiosk Network','Bowling Monitors','Digital Marquee','Digital Billboard','Movie Theater','Banner','Vertical / Pop-Up Banner','Poster','Table Tents','Golf Course','Standard Media - Other','Large Format Banner','Counter Wrap','Wall / Window Cling','Publication Ad','Web / Email / Social','Sponsorship / Other'];
+  cols.sort((a, b) => colOrder.indexOf(a) - colOrder.indexOf(b));
+  return { items, byBase, tot, cols };
+}
+
+function renderSummary() {
+  const el = document.getElementById('summary');
+  const plan = buildPlan();
+  const internal = UI.showInternal;
+  document.getElementById('exportClient').disabled = document.getElementById('exportInternal').disabled = !plan.items.length;
+  if (!plan.items.length) { el.innerHTML = '<div class="text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl p-4 text-center">Check media options to build the proposal.</div>'; return; }
+  let html = `<div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">${P.months}-month media investment</div><div class="border border-slate-200 rounded-xl overflow-hidden text-xs"><table class="w-full"><tbody>`;
+  for (const g of plan.byBase.values()) {
+    html += `<tr class="border-b border-slate-100"><td class="px-2 py-1.5"><div class="font-medium">${esc(g.b.base)}</div><div class="text-[10px] text-slate-400">${g.items.length} item${g.items.length > 1 ? 's' : ''}${g.inquire ? ` · ${g.inquire} inquire` : ''}${g.prodClient ? ` · prod ${fmt$(g.prodClient)}` : ''}</div></td><td class="px-2 py-1.5 text-right num font-semibold">${fmt$(g.media + g.prodClient)}</td></tr>`;
+  }
+  html += `<tr class="bg-navy-800 text-white"><td class="px-2 py-2 font-semibold">Total investment${plan.tot.inquire ? ' <span class="font-normal opacity-70">+ items to inquire</span>' : ''}</td><td class="px-2 py-2 text-right num font-bold text-base">${fmt$(plan.tot.client)}</td></tr>`;
+  if (internal) html += `<tr class="bg-slate-50"><td class="px-2 py-1.5 text-slate-500">Vendor cost (media${plan.tot.prodCost ? ' + production' : ''})</td><td class="px-2 py-1.5 text-right num">${fmt$(plan.tot.cost)}</td></tr>
+    <tr class="bg-slate-50"><td class="px-2 py-1.5 text-slate-500">Profit · margin</td><td class="px-2 py-1.5 text-right num font-semibold text-emerald-700">${fmt$(plan.tot.profit)} · ${(plan.tot.marginPct * 100).toFixed(0)}%</td></tr>`;
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+/* =========================================================================
+   Excel export (ExcelJS)
+   ========================================================================= */
+const XL = { navy: 'FF1F2A44', blue: 'FF0092E4', light: 'FFEEF7FD', band: 'FFF8FAFC', grey: 'FF6B7280', white: 'FFFFFFFF', money: '"$"#,##0;[Red]-"$"#,##0;"-"' };
+const thin = { style: 'thin', color: { argb: 'FFD1D5DB' } };
+const boxB = { top: thin, left: thin, bottom: thin, right: thin };
+async function logoBase64() {
+  try { const res = await fetch('assets/wilkins-logo.png'); const blob = await res.blob(); return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result.split(',')[1]); fr.readAsDataURL(blob); }); } catch (e) { return null; }
+}
+function hdrCell(c, fill = XL.navy) { c.font = { bold: true, color: { argb: XL.white }, size: 10 }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }; c.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' }; c.border = boxB; }
+function bodyCell(c, opts = {}) { c.border = boxB; c.alignment = Object.assign({ vertical: 'middle', wrapText: !!opts.wrap, horizontal: opts.h || 'left' }, opts.align || {}); if (opts.money) { c.numFmt = XL.money; c.alignment.horizontal = 'right'; } if (opts.int) { c.numFmt = '#,##0'; c.alignment.horizontal = 'right'; } if (opts.bold) c.font = Object.assign({}, c.font, { bold: true }); if (opts.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.fill } }; }
+
+async function exportExcel(internal) {
+  const plan = buildPlan();
+  if (!plan.items.length) return;
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Wilkins Media - Military Proposal Builder'; wb.created = new Date();
+  const months = +P.months;
+  const showScreens = P.showScreens, showPop = P.showPop;
+  const client = P.client || 'Client';
+  const logo = await logoBase64();
+  const imgId = logo ? wb.addImage({ base64: logo, extension: 'png' }) : null;
+
+  /* ---------------- Media Plan (wide grid, house format) ---------------- */
+  const ws = wb.addWorksheet('Media Plan', { views: [{ showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+  const fixed = ['State', 'Base', 'Branch of Service', 'DMA'];
+  if (showPop) fixed.push('Base Population');
+  const perCol = showScreens ? 2 : 1;
+  const nMedia = plan.cols.length * perCol;
+  const firstMedia = fixed.length + 1;
+  const totalCol = firstMedia + nMedia;                 // client total column
+  let vendorStart = null;
+  if (internal) vendorStart = totalCol + 2;               // gap column then vendor block
+  const lastCol = internal ? vendorStart + nMedia + 2 : totalCol;   // vendor block + Total Vendor + Profit/Margin... see below
+
+  if (imgId != null) ws.addImage(imgId, { tl: { col: 0.2, row: 0.3 }, ext: { width: 164, height: 36 } });
+  ws.getCell('A3').value = 'Military Media Plan'; ws.getCell('A3').font = { bold: true, size: 18, color: { argb: XL.navy } };
+  ws.getCell('A4').value = `Prepared for ${client}`; ws.getCell('A4').font = { size: 11, color: { argb: XL.grey } };
+  ws.getCell('A5').value = `${P.preparedBy ? 'Prepared by ' + P.preparedBy + ' · ' : ''}${new Date(P.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}${internal ? ' · INTERNAL - DO NOT SEND' : ''}`; ws.getCell('A5').font = { size: 10, color: { argb: internal ? 'FFB91C1C' : XL.grey }, bold: internal };
+
+  const R0 = 7;   // group header row
+  const R1 = 8;   // column header row
+  ws.mergeCells(R0, firstMedia, R0, totalCol); const g = ws.getCell(R0, firstMedia); g.value = `${months}-Month Media Investment`; hdrCell(g, XL.blue);
+  if (internal) { ws.mergeCells(R0, vendorStart, R0, vendorStart + nMedia + 2); const g2 = ws.getCell(R0, vendorStart); g2.value = `${months}-Month Vendor Cost (Media)`; hdrCell(g2, XL.grey); }
+  fixed.forEach((h, i) => { const c = ws.getCell(R1, i + 1); c.value = h; hdrCell(c); ws.mergeCells(R0, i + 1, R1, i + 1); hdrCell(ws.getCell(R0, i + 1)); });
+  plan.cols.forEach((col, i) => {
+    const c = ws.getCell(R1, firstMedia + i * perCol); c.value = `${col} Investment`; hdrCell(c);
+    if (showScreens) { const c2 = ws.getCell(R1, firstMedia + i * perCol + 1); c2.value = '# Units / Screens'; hdrCell(c2); }
+    if (internal) { const v = ws.getCell(R1, vendorStart + i * perCol); v.value = col; hdrCell(v, XL.grey); if (showScreens) { const v2 = ws.getCell(R1, vendorStart + i * perCol + 1); v2.value = '# Units'; hdrCell(v2, XL.grey); } }
+  });
+  const tc = ws.getCell(R1, totalCol); tc.value = 'Total Investment'; hdrCell(tc, XL.blue);
+  if (internal) { const a = ws.getCell(R1, vendorStart + nMedia); a.value = 'Total Vendor Cost'; hdrCell(a, XL.grey); const b = ws.getCell(R1, vendorStart + nMedia + 1); b.value = 'Profit'; hdrCell(b, XL.grey); const m = ws.getCell(R1, vendorStart + nMedia + 2); m.value = 'Margin %'; hdrCell(m, XL.grey); }
+  ws.getRow(R0).height = 22; ws.getRow(R1).height = 44;
+
+  let r = R1 + 1; const firstData = r;
+  for (const gB of plan.byBase.values()) {
+    const b = gB.b;
+    const vals = [b.state, b.base, b.branch, b.dma];
+    if (showPop) vals.push(b.ad ? (+b.ad) + (+b.dep || 0) : '');
+    vals.forEach((v, i) => { const c = ws.getCell(r, i + 1); c.value = v; bodyCell(c, { wrap: i === 1 || i === 3, int: i === 4 }); });
+    let rowClient = 0, rowVendor = 0;
+    plan.cols.forEach((col, i) => {
+      const its = gB.items.filter(it => it.col === col);
+      const inv = its.reduce((s, it) => s + (it.media || 0), 0);
+      const ven = its.reduce((s, it) => s + (it.vendorExt || 0), 0);
+      const units = its.reduce((s, it) => s + it.qty, 0);
+      const anyInq = its.some(it => it.media == null);
+      const c = ws.getCell(r, firstMedia + i * perCol); c.value = its.length ? (inv || (anyInq ? 'Inquire' : 0)) : 0; bodyCell(c, { money: typeof c.value === 'number' });
+      if (showScreens) { const u = ws.getCell(r, firstMedia + i * perCol + 1); u.value = its.length ? units : 0; bodyCell(u, { int: true }); }
+      if (internal) { const v = ws.getCell(r, vendorStart + i * perCol); v.value = its.length ? ven : 0; bodyCell(v, { money: true, fill: XL.band }); if (showScreens) { const u2 = ws.getCell(r, vendorStart + i * perCol + 1); u2.value = its.length ? units : 0; bodyCell(u2, { int: true, fill: XL.band }); } }
+      rowClient += inv; rowVendor += ven;
+    });
+    const t = ws.getCell(r, totalCol); t.value = rowClient; bodyCell(t, { money: true, bold: true, fill: XL.light });
+    if (internal) {
+      const v = ws.getCell(r, vendorStart + nMedia); v.value = rowVendor; bodyCell(v, { money: true, fill: XL.band });
+      const p = ws.getCell(r, vendorStart + nMedia + 1); p.value = rowClient - rowVendor; bodyCell(p, { money: true, fill: XL.band, bold: true });
+      const m = ws.getCell(r, vendorStart + nMedia + 2); m.value = rowClient ? (rowClient - rowVendor) / rowClient : 0; bodyCell(m, { fill: XL.band }); m.numFmt = '0%'; m.alignment.horizontal = 'right';
+    }
+    ws.getRow(r).height = 30; r++;
+  }
+  // totals row (formulas so David can see they add up)
+  const L = n => ws.getColumn(n).letter;
+  const tr = r;
+  ws.getCell(tr, 1).value = 'TOTAL'; ws.mergeCells(tr, 1, tr, fixed.length); hdrCell(ws.getCell(tr, 1));
+  for (let c = firstMedia; c <= totalCol; c++) { const cell = ws.getCell(tr, c); cell.value = { formula: `SUM(${L(c)}${firstData}:${L(c)}${tr - 1})` }; hdrCell(cell); cell.numFmt = (showScreens && (c - firstMedia) % 2 === 1 && c !== totalCol) ? '#,##0' : XL.money; cell.alignment.horizontal = 'right'; }
+  if (internal) {
+    for (let c = vendorStart; c <= vendorStart + nMedia + 1; c++) { const cell = ws.getCell(tr, c); cell.value = { formula: `SUM(${L(c)}${firstData}:${L(c)}${tr - 1})` }; hdrCell(cell, XL.grey); cell.numFmt = (showScreens && (c - vendorStart) % 2 === 1 && c < vendorStart + nMedia) ? '#,##0' : XL.money; cell.alignment.horizontal = 'right'; }
+    const m = ws.getCell(tr, vendorStart + nMedia + 2); m.value = { formula: `IF(${L(totalCol)}${tr}=0,0,${L(vendorStart + nMedia + 1)}${tr}/${L(totalCol)}${tr})` }; hdrCell(m, XL.grey); m.numFmt = '0%';
+  }
+  ws.getRow(tr).height = 22;
+
+  // notes block
+  r = tr + 2;
+  const notes = [
+    `Note: Rates based on a ${months}-month flight.`,
+    'All advertising subject to military base approval.',
+    'All military contracts are non-cancellable.',
+    'Production is not included unless listed below; sizes vary by installation as will cost.',
+  ];
+  if (plan.tot.inquire) notes.push('Items marked "Inquire" are available at the installation; pricing to be confirmed.');
+  for (const n of notes) { const c = ws.getCell(r, 1); c.value = n; c.font = { italic: true, size: 10, color: { argb: XL.grey } }; r++; }
+  const prodItems = plan.items.filter(it => it.line.prod && it.prodClient);
+  const anyStd = plan.items.some(it => it.r.category === 'Standard Media');
+  r++;
+  if (prodItems.length) {
+    ws.getCell(r, 1).value = 'Production (included above per item):'; ws.getCell(r, 1).font = { bold: true, size: 10, color: { argb: XL.navy } }; r++;
+    for (const gB of plan.byBase.values()) { const pc = gB.items.reduce((s, it) => s + (it.prodClient || 0), 0); if (pc) { ws.getCell(r, 1).value = gB.b.base; ws.getCell(r, 2).value = gB.items.filter(it => it.prodClient).map(it => `${it.r.media_type} (${it.prodLabel})`).join(', '); ws.getCell(r, 3).value = pc; ws.getCell(r, 3).numFmt = XL.money; r++; } }
+    r++;
+  }
+  if (anyStd) {
+    ws.getCell(r, 1).value = 'Production Pricing (Based on Quantity of 1)'; ws.getCell(r, 1).font = { bold: true, size: 10, color: { argb: XL.navy } }; r++;
+    ws.getCell(r, 1).value = 'Poster 22"W x 28"H'; ws.getCell(r, 2).value = +P.prodPoster; ws.getCell(r, 2).numFmt = XL.money; r++;
+    ws.getCell(r, 1).value = 'Indoor Banner 6\'W x 3\'H'; ws.getCell(r, 2).value = +P.prodBanner; ws.getCell(r, 2).numFmt = XL.money; r++;
+    ws.getCell(r, 1).value = 'Other sizes vary by installation - please inquire for specific details.'; ws.getCell(r, 1).font = { italic: true, size: 10, color: { argb: XL.grey } }; r++;
+  }
+  // column widths: 20 everywhere except unit columns (David's rule)
+  for (let c = 1; c <= (internal ? vendorStart + nMedia + 2 : totalCol); c++) ws.getColumn(c).width = 20;
+  if (showScreens) plan.cols.forEach((col, i) => { ws.getColumn(firstMedia + i * perCol + 1).width = 11; if (internal) ws.getColumn(vendorStart + i * perCol + 1).width = 11; });
+  ws.getColumn(2).width = 28; if (showPop) ws.getColumn(5).width = 14;
+  if (internal) ws.getColumn(totalCol + 1).width = 3;
+  ws.views = [{ showGridLines: false, state: 'frozen', xSplit: 2, ySplit: R1 }];
+
+  /* ---------------- Line Item Detail ---------------- */
+  const wd = wb.addWorksheet('Line Item Detail', { views: [{ showGridLines: false, state: 'frozen', ySplit: 1 }] });
+  const heads = ['State', 'Base', 'Branch', 'Category', 'Media', 'Ad Unit Size', 'Description', 'Qty', 'Pricing Basis', 'Media Investment', 'Production', 'Line Total', 'Notes'];
+  if (internal) heads.push('Vendor Media Cost', 'Vendor Production', 'Profit', 'Margin %', 'Rate Card Year', 'Rate Card Notes', 'Review Flag');
+  heads.forEach((h, i) => { const c = wd.getCell(1, i + 1); c.value = h; hdrCell(c); });
+  wd.getRow(1).height = 30;
+  let rr = 2;
+  for (const it of plan.items) {
+    const total = (it.media || 0) + (it.prodClient || 0);
+    const vals = [it.b.state, it.b.base, it.b.branch, it.r.category, it.r.media_type, it.r.ad_unit_size || '', it.r.description || '', it.qty, it.basis, it.media == null ? 'Inquire' : it.media, it.line.prod ? (it.prodClient || 'Inquire') : '', it.media == null ? 'Inquire' : total, [it.line.note, it.minTerm ? `${it.minTerm}-month minimum` : '', it.manualPrice ? 'client price entered manually' : ''].filter(Boolean).join('; ')];
+    if (internal) vals.push(it.vendorExt ?? '', it.line.prod ? (it.prodCost || '') : '', it.media == null ? '' : total - (it.vendorExt || 0) - (it.prodCost || 0), it.media ? (total - (it.vendorExt || 0) - (it.prodCost || 0)) / total : '', it.r.rate_card_year || '', it.r.notes || '', it.r.review || '');
+    vals.forEach((v, i) => { const c = wd.getCell(rr, i + 1); c.value = v; const money = [9, 10, 11, 13, 14, 15].includes(i) && typeof v === 'number'; bodyCell(c, { wrap: [6, 8, 12, 18, 19].includes(i), money, int: i === 7 }); if (i === 16 && typeof v === 'number') { c.numFmt = '0%'; c.alignment.horizontal = 'right'; } });
+    rr++;
+  }
+  [8, 30, 12, 18, 26, 16, 50, 6, 26, 16, 14, 16, 30, 16, 14, 14, 10, 10, 30, 30].forEach((w, i) => wd.getColumn(i + 1).width = w);
+
+  /* ---------------- Settings (internal only) ---------------- */
+  if (internal) {
+    const st = wb.addWorksheet('Pricing Settings', { views: [{ showGridLines: false }] });
+    const rows = [
+      ['Client', client], ['Flight length (months)', months], ['Pricing method', P.method === 'monthly' ? 'Monthly vendor rate × months (house standard)' : 'Rate-card term price where available'],
+      ['Markup applied', P.marginOn ? 'Yes' : 'No'], ['Margin', P.marginOn ? `${P.marginPct}% ${P.marginMode === 'margin' ? 'margin on price (vendor ÷ (1 − m))' : 'markup on cost (vendor × (1 + m))'}` : 'n/a'],
+      ['Rounding', P.marginOn ? (+P.roundTo ? `nearest $${P.roundTo}` : 'none') : 'n/a'], ['Standard production', `Poster ${fmt$(P.prodPoster)} · Banner ${fmt$(P.prodBanner)} (client)`],
+      ['Rate card data', `${RC.source} · generated ${RC.generated}`], ['Exported', new Date().toLocaleString()],
+    ];
+    rows.forEach((kv, i) => { st.getCell(i + 1, 1).value = kv[0]; st.getCell(i + 1, 1).font = { bold: true }; st.getCell(i + 1, 2).value = kv[1]; });
+    st.getColumn(1).width = 26; st.getColumn(2).width = 80;
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  const safe = client.replace(/[^\w\- ]+/g, '').trim() || 'Client';
+  const d = new Date(P.date + 'T12:00:00'); const stamp = `${d.getMonth() + 1}.${d.getDate()}.${String(d.getFullYear()).slice(2)}`;
+  const name = `${safe} ${d.getFullYear()} Military Proposal ${internal ? 'INTERNAL' : stamp}.xlsx`;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast(`Exported ${name}`);
+}
+
+/* =========================================================================
+   Load rate card from the MASTER .xlsx (or CSV) - Excel stays the source of truth
+   ========================================================================= */
+async function loadRateCardFile(file) {
+  const buf = await file.arrayBuffer();
+  const wbk = XLSX.read(buf, { type: 'array' });
+  const sheet = wbk.Sheets['Rate Card'] || wbk.Sheets[wbk.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  const H = {};
+  const want = { id: /^id$/i, base: /^base$/i, aka: /also known/i, state: /^state/i, dma: /dma/i, zip: /^zip/i, branch: /^branch/i, category: /^category/i, media_type: /media type/i, ad_unit_size: /ad unit size/i, description: /^description/i, min_term_months: /min term/i, vendor_1mo: /vendor cost 1 month/i, vendor_3mo: /vendor cost 3 month/i, vendor_6mo: /vendor cost 6 month/i, vendor_12mo: /vendor cost 12 month/i, vendor_production: /vendor production/i, active_duty: /active duty/i, dependents: /dependents/i, rate_card_year: /rate card year/i, last_updated: /last updated/i, notes: /^notes/i, review: /review/i };
+  const keys = Object.keys(json[0] || {});
+  for (const [k, rx] of Object.entries(want)) { const hit = keys.find(h => rx.test(h.trim())) || keys.find(h => h.trim().toLowerCase() === k); if (hit) H[k] = hit; }
+  if (!H.base || !H.media_type) { toast('Could not find Base / Media Type columns in that file.'); return; }
+  const rows = json.map((o, i) => {
+    const r = {};
+    for (const k of Object.keys(want)) { let v = H[k] != null ? o[H[k]] : ''; if (typeof v === 'string') v = v.trim(); if (k.startsWith('vendor_') || k === 'active_duty' || k === 'dependents' || k === 'min_term_months') { v = (v === '' || isNaN(+v)) ? null : +v; } if (v != null && v !== '') r[k] = v; }
+    if (!r.id) r.id = `${r.state || 'XX'}-${(r.base || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8)}-${String(i + 1).padStart(3, '0')}`;
+    if (!r.category || !CATS.includes(r.category)) r.category = 'Sponsorship & Other';
+    if (r.min_term_months == null) { const t = TERMS.find(([t, k]) => r[k] > 0); r.min_term_months = t ? t[0] : null; }
+    return r;
+  }).filter(r => r.base && r.media_type);
+  // Settings sheet (optional)
+  const settings = Object.assign({}, S);
+  if (wbk.Sheets['Settings']) { const sj = XLSX.utils.sheet_to_json(wbk.Sheets['Settings'], { header: 1 }); for (const row of sj) { const k = String(row[0] || '').toLowerCase(), v = row[1]; if (/standard margin/.test(k) && !isNaN(+v)) settings.margin = +v; if (/round client/.test(k) && !isNaN(+v)) settings.roundTo = +v; if (/production - poster/.test(k) && !isNaN(+v)) settings.prodPosterClient = +v; if (/production - banner/.test(k) && !isNaN(+v)) settings.prodBannerClient = +v; if (/printer cost - poster/.test(k) && !isNaN(+v)) settings.prodPosterCost = +v; if (/printer cost - banner/.test(k) && !isNaN(+v)) settings.prodBannerCost = +v; if (/default campaign/.test(k) && !isNaN(+v)) settings.defaultMonths = +v; if (/considered current/.test(k) && !isNaN(+v)) settings.currentYear = +v; } }
+  RC = { rows, settings, source: file.name, generated: new Date(file.lastModified).toISOString().slice(0, 10) };
+  Object.assign(S, settings);
+  indexData();
+  // drop selections that no longer exist
+  P.selectedBases = P.selectedBases.filter(k => BASES.has(k));
+  for (const id of Object.keys(P.lines)) if (!ROWS.find(r => r.id === id)) delete P.lines[id];
+  renderAll(); toast(`Loaded ${rows.length} media options from ${file.name}`);
+}
+
+/* =========================================================================
+   Persistence
+   ========================================================================= */
+const LS = 'wilkins-military-proposal-v1';
+function save() { try { localStorage.setItem(LS, JSON.stringify(P)); } catch (e) {} }
+function restore() { try { const s = localStorage.getItem(LS); if (s) P = Object.assign(defaultProposal(), JSON.parse(s)); } catch (e) {} }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 2600); }
+
+function bindSettings() {
+  const map = { clientName: 'client', preparedBy: 'preparedBy', propDate: 'date', months: 'months', method: 'method', marginPct: 'marginPct', marginMode: 'marginMode', roundTo: 'roundTo', prodPoster: 'prodPoster', prodBanner: 'prodBanner' };
+  for (const [id, key] of Object.entries(map)) { const el = document.getElementById(id); el.value = P[key]; el.addEventListener('input', () => { P[key] = el.type === 'number' ? +el.value : el.value; if (id === 'months' && !(P.months > 0)) P.months = 1; renderMedia(); renderSummary(); renderMarginExample(); save(); }); }
+  const checks = { marginOn: 'marginOn', prodOn: 'prodOn', showPop: 'showPop', showScreens: 'showScreens' };
+  for (const [id, key] of Object.entries(checks)) { const el = document.getElementById(id); el.checked = !!P[key]; el.addEventListener('change', () => { P[key] = el.checked; if (id === 'prodOn') for (const l of Object.values(P.lines)) l.prod = el.checked; document.getElementById('marginBox').style.opacity = P.marginOn ? 1 : .4; renderMedia(); renderSummary(); renderMarginExample(); save(); }); }
+  document.getElementById('marginBox').style.opacity = P.marginOn ? 1 : .4;
+  renderMarginExample();
+}
+function renderMarginExample() { document.getElementById('marginExample').textContent = fmt$(clientFromVendor(600)) + (P.marginOn ? ` (×${factor().toFixed(2)})` : ' (no markup)'); }
+function renderAll() { renderStates(); renderBases(); renderCatFilter(); renderMedia(); renderSummary(); }
+
+/* =========================================================================
+   Boot
+   ========================================================================= */
+indexData(); restore(); bindSettings(); renderAll();
+document.getElementById('search').addEventListener('input', e => { UI.search = e.target.value; renderBases(); });
+document.getElementById('clearStates').onclick = () => { P.selectedStates = []; renderStates(); renderBases(); save(); };
+document.getElementById('clearBases').onclick = () => { P.selectedBases = []; P.lines = {}; renderAll(); save(); };
+document.getElementById('selectAllBases').onclick = () => { for (const b of visibleBases()) if (!P.selectedBases.includes(b.key)) P.selectedBases.push(b.key); renderAll(); save(); };
+document.getElementById('showInternal').addEventListener('change', e => { UI.showInternal = e.target.checked; renderMedia(); renderSummary(); });
+document.getElementById('onlySelected').addEventListener('change', e => { UI.onlySelected = e.target.checked; renderMedia(); });
+document.getElementById('exportClient').onclick = () => exportExcel(false).catch(e => { console.error(e); toast('Export failed: ' + e.message); });
+document.getElementById('exportInternal').onclick = () => exportExcel(true).catch(e => { console.error(e); toast('Export failed: ' + e.message); });
+document.getElementById('rateCardFile').addEventListener('change', e => { if (e.target.files[0]) loadRateCardFile(e.target.files[0]).catch(err => { console.error(err); toast('Could not read file: ' + err.message); }); e.target.value = ''; });
+document.getElementById('btnSave').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(P, null, 2)], { type: 'application/json' })); a.download = `${(P.client || 'proposal').replace(/[^\w\- ]+/g, '')} military proposal ${P.date}.json`; a.click(); toast('Proposal saved (JSON)'); };
+document.getElementById('proposalFile').addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { P = Object.assign(defaultProposal(), JSON.parse(await f.text())); bindSettings(); renderAll(); save(); toast('Proposal opened'); } catch (err) { toast('Could not open proposal'); } e.target.value = ''; });
+document.getElementById('btnNew').onclick = () => { if (!Object.keys(P.lines).length || confirm('Start a new proposal? Current selections will be cleared.')) { P = defaultProposal(); bindSettings(); renderAll(); save(); } };
+</script>
+</body>
+</html>
