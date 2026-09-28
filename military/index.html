@@ -53,9 +53,15 @@ tailwind.config = { theme: { extend: { colors: {
       <button id="btnSave" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5"><i class="fa-solid fa-floppy-disk"></i>Save proposal</button>
       <label class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 cursor-pointer"><i class="fa-solid fa-folder-open"></i>Open<input id="proposalFile" type="file" accept=".json" class="hidden"></label>
       <button id="btnNew" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5"><i class="fa-solid fa-plus"></i>New</button>
+      <button id="btnPricing" class="inline-flex items-center gap-2 bg-wb-500 hover:bg-wb-600 rounded-lg px-3 py-1.5 font-semibold"><i class="fa-solid fa-pen-to-square"></i>Update pricing</button>
     </div>
   </div>
-  <div id="dataBar" class="bg-navy-900/60 text-[11px] text-navy-100/70 px-4 py-1 text-center"></div>
+  <div class="bg-navy-900/60 text-[11px] text-navy-100/80 px-4 py-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+    <span id="dataBar"></span>
+    <span id="dirtyBar" class="hidden text-amber-300 font-semibold"></span>
+    <button id="btnDownloadRC" class="underline hover:text-white" title="Download the full rate card as the MASTER Excel file (share it in Box; anyone can load it with 'Load rate card')"><i class="fa-solid fa-download"></i> Download rate card (Excel)</button>
+    <button id="btnResetRC" class="underline hover:text-white hidden" title="Discard local pricing edits and go back to the rate card built into the app">Reset to built-in data</button>
+  </div>
 </header>
 
 <main class="max-w-[1700px] mx-auto p-3 sm:p-4 grid grid-cols-1 xl:grid-cols-12 gap-4">
@@ -92,9 +98,9 @@ tailwind.config = { theme: { extend: { colors: {
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
       <div class="flex flex-wrap items-center gap-3 mb-2">
         <div class="w-7 h-7 rounded-full bg-wb-100 text-wb-700 flex items-center justify-center text-xs font-bold">2</div>
-        <h2 class="font-semibold">Media options</h2>
+        <h2 class="font-semibold" id="mediaTitle">Media options</h2>
         <span id="selSummary" class="text-xs text-slate-500"></span>
-        <div class="ml-auto flex flex-wrap items-center gap-3 text-xs">
+        <div id="mediaTools" class="ml-auto flex flex-wrap items-center gap-3 text-xs">
           <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="showInternal" class="accent-wb-500" checked><span>Show vendor cost &amp; margin</span></label>
           <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="onlySelected" class="accent-wb-500"><span>Only checked</span></label>
         </div>
@@ -176,7 +182,7 @@ let RC = window.WILKINS_RATE_CARD || { rows: [], settings: {}, source: 'none', g
 let ROWS = [], BASES = new Map();
 
 function indexData() {
-  ROWS = RC.rows.map(r => Object.assign({}, r));
+  ROWS = RC.rows;   // same objects, so pricing edits persist through saveRC()
   BASES = new Map();
   for (const r of ROWS) {
     r.baseKey = (r.state || 'XX') + '|' + r.base;
@@ -188,7 +194,15 @@ function indexData() {
     if (!b.dep && r.dependents) b.dep = r.dependents;
   }
   document.getElementById('dataBar').textContent = `Rate card: ${RC.source} · ${ROWS.length} media options · ${BASES.size} installations · data as of ${RC.generated || 'n/a'}`;
+  const n = (RC.changes || []).length;
+  document.getElementById('dirtyBar').classList.toggle('hidden', !n);
+  document.getElementById('dirtyBar').textContent = n ? `${n} pricing edit${n > 1 ? 's' : ''} saved in this browser — download the rate card to share them` : '';
+  document.getElementById('btnResetRC').classList.toggle('hidden', !RC.local);
 }
+const LS_RC = 'wilkins-rate-card-v1';
+function saveRC() { RC.local = true; try { localStorage.setItem(LS_RC, JSON.stringify(RC)); } catch (e) { toast('Could not save locally (storage full?)'); } }
+function restoreRC() { try { const s = localStorage.getItem(LS_RC); if (s) { const o = JSON.parse(s); if (o && o.rows && o.rows.length) { RC = o; Object.assign(S, o.settings || {}); } } } catch (e) {} }
+function logChange(base, media, field, from, to) { (RC.changes = RC.changes || []).push({ date: new Date().toISOString().slice(0, 10), base, media, field, from: from ?? '', to: to ?? '' }); }
 
 /* =========================================================================
    Proposal state
@@ -205,7 +219,7 @@ function defaultProposal() {
     selectedStates: [], selectedBases: [], lines: {}   // lines[rowId] = {qty, term, prod, price, vendor, note}
   };
 }
-const UI = { search: '', catFilter: null, showInternal: true, onlySelected: false };
+const UI = { search: '', catFilter: null, showInternal: true, onlySelected: false, mode: 'build' };
 
 /* =========================================================================
    Pricing engine
@@ -372,6 +386,10 @@ function renderCatFilter() {
 function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
 function renderMedia() {
+  document.getElementById('catFilter').classList.toggle('hidden', UI.mode === 'pricing');
+  if (UI.mode === 'pricing') return renderPricingEditor();
+  document.getElementById('mediaTitle').textContent = 'Media options';
+  document.getElementById('mediaTools').classList.remove('hidden');
   const el = document.getElementById('mediaPanel'); el.innerHTML = '';
   const bases = P.selectedBases.map(k => BASES.get(k)).filter(Boolean).sort((a, b) => a.state.localeCompare(b.state) || a.base.localeCompare(b.base));
   document.getElementById('selSummary').textContent = bases.length ? `${bases.length} installation${bases.length > 1 ? 's' : ''} · ${Object.keys(P.lines).length} items checked` : '';
@@ -698,13 +716,173 @@ async function loadRateCardFile(file) {
   // Settings sheet (optional)
   const settings = Object.assign({}, S);
   if (wbk.Sheets['Settings']) { const sj = XLSX.utils.sheet_to_json(wbk.Sheets['Settings'], { header: 1 }); for (const row of sj) { const k = String(row[0] || '').toLowerCase(), v = row[1]; if (/standard margin/.test(k) && !isNaN(+v)) settings.margin = +v; if (/round client/.test(k) && !isNaN(+v)) settings.roundTo = +v; if (/production - poster/.test(k) && !isNaN(+v)) settings.prodPosterClient = +v; if (/production - banner/.test(k) && !isNaN(+v)) settings.prodBannerClient = +v; if (/printer cost - poster/.test(k) && !isNaN(+v)) settings.prodPosterCost = +v; if (/printer cost - banner/.test(k) && !isNaN(+v)) settings.prodBannerCost = +v; if (/default campaign/.test(k) && !isNaN(+v)) settings.defaultMonths = +v; if (/considered current/.test(k) && !isNaN(+v)) settings.currentYear = +v; } }
-  RC = { rows, settings, source: file.name, generated: new Date(file.lastModified).toISOString().slice(0, 10) };
+  let changes = [];
+  if (wbk.Sheets['Change Log']) { const cj = XLSX.utils.sheet_to_json(wbk.Sheets['Change Log'], { defval: '' }); changes = cj.filter(c => c.Base || c.base).map(c => ({ date: String(c.Date || c.date || ''), base: c.Base || c.base, media: c['Media option'] || '', field: c['What changed'] || '', from: c.From ?? '', to: c.To ?? '' })); }
+  RC = { rows, settings, source: file.name, generated: new Date(file.lastModified).toISOString().slice(0, 10), changes };
   Object.assign(S, settings);
+  saveRC();
   indexData();
   // drop selections that no longer exist
   P.selectedBases = P.selectedBases.filter(k => BASES.has(k));
   for (const id of Object.keys(P.lines)) if (!ROWS.find(r => r.id === id)) delete P.lines[id];
   renderAll(); toast(`Loaded ${rows.length} media options from ${file.name}`);
+}
+
+/* =========================================================================
+   Update pricing: a plain editor anyone can use when a base sends a new rate card
+   ========================================================================= */
+const FIELD_LABELS = { vendor_1mo: '1 month', vendor_3mo: '3 months', vendor_6mo: '6 months', vendor_12mo: '12 months', vendor_production: 'production', rate_card_year: 'rate card year', media_type: 'media type', ad_unit_size: 'size', description: 'description', notes: 'notes', category: 'category' };
+function newRowId(b) { const code = b.base.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8); let n = b.rows.length + 1, id; do { id = `${b.state || 'XX'}-${code}-${String(n++).padStart(3, '0')}`; } while (ROWS.some(r => r.id === id)); return id; }
+
+function renderPricingEditor() {
+  document.getElementById('mediaTitle').textContent = 'Update pricing';
+  document.getElementById('mediaTools').classList.add('hidden');
+  document.getElementById('selSummary').textContent = '';
+  const el = document.getElementById('mediaPanel'); el.innerHTML = '';
+  const intro = document.createElement('div');
+  intro.className = 'bg-wb-50 border border-wb-200 rounded-xl p-3 text-xs text-slate-700 space-y-1';
+  intro.innerHTML = `<div class="font-semibold text-navy-800 text-sm"><i class="fa-solid fa-circle-info text-wb-500 mr-1"></i>How to update a base's pricing (about 5 minutes)</div>
+    <ol class="list-decimal pl-5 space-y-0.5">
+      <li>Pick the installation on the left (or <button class="text-wb-600 underline" data-act="addbase">add a new installation</button>).</li>
+      <li>Type the <b>vendor cost</b> from the base's rate card - what the base charges us, before markup. Use the total for that term (3 months = total for 3 months). Leave a box empty if the base doesn't sell that term.</li>
+      <li>Set the <b>rate card year</b> so everyone knows how fresh the price is. Add a note if a price is per unit, per season, or has a minimum.</li>
+      <li>Click <b>Download rate card (Excel)</b> at the top and save it over the master in Box. Everyone else clicks <b>Load rate card</b> to pick up your changes.</li>
+    </ol>
+    <div class="text-slate-500">Edits save automatically in this browser as you type. Client prices are calculated from vendor cost - you never type a client price here.</div>`;
+  intro.querySelector('[data-act=addbase]').onclick = addInstallation;
+  el.appendChild(intro);
+  const bases = P.selectedBases.map(k => BASES.get(k)).filter(Boolean).sort((a, b) => a.state.localeCompare(b.state) || a.base.localeCompare(b.base));
+  if (!bases.length) { const d = document.createElement('div'); d.className = 'text-sm text-slate-400 border border-dashed border-slate-200 rounded-xl p-8 text-center'; d.innerHTML = 'Select an installation on the left to edit its pricing, or <button class="text-wb-600 underline" data-act="addbase">add a new installation</button>.'; d.querySelector('button').onclick = addInstallation; el.appendChild(d); return; }
+  for (const b of bases) el.appendChild(renderBaseEditor(b));
+}
+
+function renderBaseEditor(b) {
+  const card = document.createElement('div'); card.className = 'border border-slate-200 rounded-xl overflow-hidden';
+  const years = [...new Set(b.rows.map(r => r.rate_card_year).filter(Boolean))];
+  card.innerHTML = `<div class="bg-navy-100/60 px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div class="font-semibold text-navy-800">${esc(b.base)}</div>
+      <div class="text-xs text-slate-600">${esc(b.state)} · ${esc(b.branch)}${b.dma ? ' · ' + esc(b.dma) : ''}</div>
+      <label class="ml-auto text-xs flex items-center gap-1">Set rate card year for all rows <input type="number" min="2015" max="2035" placeholder="${new Date().getFullYear()}" value="${years.length === 1 ? years[0] : ''}" data-act="yearall" class="w-20 border border-slate-200 rounded px-1 py-0.5 num"></label>
+      <button class="text-xs text-wb-600 hover:underline" data-act="addrow"><i class="fa-solid fa-plus"></i> add option</button>
+    </div>
+    <div class="overflow-x-auto scroll-thin"><table class="w-full text-xs">
+      <thead><tr class="text-[10px] uppercase tracking-wide text-slate-500 bg-slate-50">
+        <th class="text-left px-2 py-1.5 min-w-[150px]">Media option</th><th class="text-left px-2 py-1.5 min-w-[110px]">Category</th><th class="text-left px-2 py-1.5 min-w-[90px]">Size</th>
+        <th class="px-2 py-1.5 bg-wb-50 text-wb-700">Vendor 1 mo</th><th class="px-2 py-1.5 bg-wb-50 text-wb-700">3 mo</th><th class="px-2 py-1.5 bg-wb-50 text-wb-700">6 mo</th><th class="px-2 py-1.5 bg-wb-50 text-wb-700">12 mo</th><th class="px-2 py-1.5">Production</th>
+        <th class="px-2 py-1.5">Year</th><th class="text-left px-2 py-1.5 min-w-[160px]">Notes / description</th><th></th></tr></thead>
+      <tbody></tbody></table></div>`;
+  const tb = card.querySelector('tbody');
+  const sorted = [...b.rows].sort((x, y) => CATS.indexOf(x.category) - CATS.indexOf(y.category) || x.media_type.localeCompare(y.media_type));
+  for (const r of sorted) tb.appendChild(renderEditRow(r, b));
+  card.querySelector('[data-act=addrow]').onclick = () => { const r = { id: newRowId(b), base: b.base, aka: b.aka, state: b.state, dma: b.dma, zip: b.zip, branch: b.branch, category: 'Digital', media_type: 'New option', description: '', rate_card_year: new Date().getFullYear(), min_term_months: null }; r.baseKey = b.key; ROWS.push(r); RC.rows.push(r); b.rows.push(r); logChange(b.base, r.media_type, 'added', '', ''); saveRC(); renderMedia(); indexDataLite(); };
+  card.querySelector('[data-act=yearall]').addEventListener('change', e => { const y = +e.target.value || null; for (const r of b.rows) { if (r.rate_card_year !== y) { logChange(b.base, r.media_type, 'rate card year', r.rate_card_year, y); r.rate_card_year = y; } } saveRC(); renderMedia(); indexDataLite(); });
+  return card;
+}
+
+function renderEditRow(r, b) {
+  const tr = document.createElement('tr'); tr.className = 'border-t border-slate-100 align-top';
+  const numIn = (f, w = 'w-20') => `<input type="number" min="0" step="1" value="${r[f] ?? ''}" data-f="${f}" class="${w} border border-slate-200 rounded px-1 py-1 num text-right focus:border-wb-500 focus:outline-none">`;
+  tr.innerHTML = `
+    <td class="px-2 py-1"><input type="text" value="${esc(r.media_type)}" data-f="media_type" class="w-full border border-slate-200 rounded px-1 py-1 font-medium"></td>
+    <td class="px-2 py-1"><select data-f="category" class="w-full border border-slate-200 rounded px-1 py-1">${CATS.map(c => `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></td>
+    <td class="px-2 py-1"><input type="text" value="${esc(r.ad_unit_size || '')}" data-f="ad_unit_size" placeholder="e.g. 3' x 6'" class="w-full border border-slate-200 rounded px-1 py-1"></td>
+    <td class="px-1 py-1 bg-wb-50/50">${numIn('vendor_1mo')}</td><td class="px-1 py-1 bg-wb-50/50">${numIn('vendor_3mo')}</td><td class="px-1 py-1 bg-wb-50/50">${numIn('vendor_6mo')}</td><td class="px-1 py-1 bg-wb-50/50">${numIn('vendor_12mo')}</td>
+    <td class="px-1 py-1">${numIn('vendor_production', 'w-16')}</td>
+    <td class="px-1 py-1"><input type="number" min="2015" max="2035" value="${r.rate_card_year ?? ''}" data-f="rate_card_year" class="w-16 border border-slate-200 rounded px-1 py-1 num"></td>
+    <td class="px-2 py-1"><input type="text" value="${esc(r.notes || '')}" data-f="notes" placeholder="per unit / minimum / etc." class="w-full border border-slate-200 rounded px-1 py-1 mb-1"><input type="text" value="${esc(r.description || '')}" data-f="description" placeholder="where the ad appears" class="w-full border border-slate-200 rounded px-1 py-1 text-slate-500"></td>
+    <td class="px-1 py-1"><button data-act="del" class="text-slate-300 hover:text-red-500" title="Remove this option"><i class="fa-solid fa-trash"></i></button></td>`;
+  tr.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('change', () => {
+    const f = inp.dataset.f; const isNum = inp.type === 'number';
+    const v = isNum ? (inp.value === '' ? null : +inp.value) : inp.value.trim();
+    const before = r[f] ?? null;
+    if (before === v) return;
+    logChange(b.base, r.media_type, FIELD_LABELS[f] || f, before, v);
+    if (v == null || v === '') delete r[f]; else r[f] = v;
+    if (f.startsWith('vendor_') && f !== 'vendor_production') { const t = TERMS.find(([t, k]) => r[k] > 0); r.min_term_months = t ? t[0] : null; }
+    saveRC(); indexDataLite(); renderSummary();
+    inp.classList.add('ring-2', 'ring-emerald-300'); setTimeout(() => inp.classList.remove('ring-2', 'ring-emerald-300'), 800);
+  }));
+  tr.querySelector('[data-act=del]').onclick = () => { if (!confirm(`Remove "${r.media_type}" from ${b.base}?`)) return; logChange(b.base, r.media_type, 'removed', '', ''); RC.rows = RC.rows.filter(x => x !== r); ROWS = ROWS.filter(x => x !== r); b.rows = b.rows.filter(x => x !== r); delete P.lines[r.id]; saveRC(); renderMedia(); indexDataLite(); renderSummary(); };
+  return tr;
+}
+
+function indexDataLite() { const n = (RC.changes || []).length; document.getElementById('dirtyBar').classList.remove('hidden'); document.getElementById('dirtyBar').textContent = `${n} pricing edit${n === 1 ? '' : 's'} saved in this browser — download the rate card to share them`; document.getElementById('btnResetRC').classList.remove('hidden'); }
+
+function addInstallation() {
+  const base = (prompt('Installation name (e.g. Shaw AFB):') || '').trim(); if (!base) return;
+  const state = (prompt('State (2 letters):') || '').trim().toUpperCase().slice(0, 5);
+  const branch = (prompt('Branch of service (Army / Air Force / Navy / Marine Corps / Coast Guard / Joint Base):') || '').trim();
+  const dma = (prompt('DMA / metro area (optional):') || '').trim();
+  const key = (state || 'XX') + '|' + base;
+  if (!BASES.has(key)) { const r = { id: `${state || 'XX'}-${base.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8)}-001`, base, state, dma, branch, category: 'Digital', media_type: 'Digital Monitor Network', description: '', rate_card_year: new Date().getFullYear() }; RC.rows.push(r); logChange(base, '(new installation)', 'added', '', ''); saveRC(); indexData(); }
+  if (!P.selectedBases.includes(key)) P.selectedBases.push(key);
+  UI.mode = 'pricing'; renderAll(); save();
+}
+
+/** Download the whole rate card as the MASTER workbook (same layout the app reads back). */
+async function exportRateCard() {
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Wilkins Media - Military Proposal Builder';
+  const logo = await logoBase64(); const imgId = logo ? wb.addImage({ base64: logo, extension: 'png' }) : null;
+  const today = new Date().toISOString().slice(0, 10);
+  // Read Me
+  const rm = wb.addWorksheet('Read Me', { views: [{ showGridLines: false }] });
+  if (imgId != null) rm.addImage(imgId, { tl: { col: 1, row: 1 }, ext: { width: 218, height: 48 } });
+  rm.getCell('B6').value = 'Wilkins Media - Military On-Base Advertising Rate Card (MASTER)'; rm.getCell('B6').font = { bold: true, size: 16, color: { argb: XL.navy } };
+  rm.getCell('B7').value = `Downloaded ${today} from the Military Proposal Builder. ${(RC.changes || []).length} edits since the built-in data (see Change Log).`; rm.getCell('B7').font = { italic: true, color: { argb: XL.grey } };
+  [['How to use', 'Open the Military Proposal Builder and click "Load rate card" to use this file. To change prices, use "Update pricing" in the app and download again - or edit the Vendor Cost columns here and load the file.'],
+   ['Vendor cost', 'What the base charges Wilkins, before markup. Columns are totals for that term. Blank = the base does not sell that term.'],
+   ['Client price', 'Formula: vendor cost / (1 - margin), rounded (Settings tab). Standard military margin 50% = vendor x 2.'],
+   ['Production', 'Never included in media price. Standard: poster $100, banner $350; other sizes inquire.']].forEach((kv, i) => { rm.getCell(9 + i, 2).value = kv[0]; rm.getCell(9 + i, 2).font = { bold: true, color: { argb: XL.navy } }; rm.getCell(9 + i, 3).value = kv[1]; rm.getCell(9 + i, 3).alignment = { wrapText: true, vertical: 'top' }; rm.getRow(9 + i).height = 34; });
+  rm.getColumn(1).width = 3; rm.getColumn(2).width = 22; rm.getColumn(3).width = 100;
+  // Settings
+  const st = wb.addWorksheet('Settings', { views: [{ showGridLines: false }] });
+  [['Setting', 'Value', 'Notes'],
+   ['Standard margin (share of client price kept by Wilkins)', S.margin ?? 0.5, 'Client price = vendor cost / (1 - margin). 50% = vendor x 2.'],
+   ['Round client prices to nearest', S.roundTo ?? 25, ''],
+   ['Standard production - Poster 22"W x 28"H (client price)', S.prodPosterClient ?? 100, ''],
+   ['Standard production - Banner 3\'H x 6\'W (client price)', S.prodBannerClient ?? 350, ''],
+   ['Est. printer cost - Poster', S.prodPosterCost ?? 50, ''], ['Est. printer cost - Banner 3x6', S.prodBannerCost ?? 96, ''],
+   ['Default campaign length (months)', S.defaultMonths ?? 3, ''], ['Standard pricing method', 'Monthly rate x months', ''],
+   ['Rate card year considered current', S.currentYear ?? 2025, 'Older cards should be reconfirmed with the base.']].forEach((row, i) => { row.forEach((v, j) => { const c = st.getCell(i + 1, j + 1); c.value = v; c.border = boxB; if (i === 0) hdrCell(c); if (i === 1 && j === 1) c.numFmt = '0%'; }); });
+  st.getColumn(1).width = 52; st.getColumn(2).width = 24; st.getColumn(3).width = 70;
+  // Rate Card
+  const rc = wb.addWorksheet('Rate Card', { views: [{ state: 'frozen', xSplit: 2, ySplit: 1 }] });
+  const cols = [['id', 'ID', 18], ['base', 'Base', 30], ['aka', 'Also known as', 22], ['state', 'State', 8], ['dma', 'DMA / Metro', 24], ['zip', 'Zip', 8], ['branch', 'Branch', 14], ['category', 'Category', 18], ['media_type', 'Media Type', 28], ['ad_unit_size', 'Ad Unit Size', 18], ['description', 'Description', 50], ['min_term_months', 'Min Term (mo)', 10],
+    ['vendor_1mo', 'Vendor Cost 1 Month', 14], ['vendor_3mo', 'Vendor Cost 3 Months', 14], ['vendor_6mo', 'Vendor Cost 6 Months', 14], ['vendor_12mo', 'Vendor Cost 12 Months', 14], ['vendor_production', 'Vendor Production Cost', 14],
+    ['client_1mo', 'Client Price 1 Month', 14], ['client_3mo', 'Client Price 3 Months', 14], ['client_6mo', 'Client Price 6 Months', 14], ['client_12mo', 'Client Price 12 Months', 14], ['client_production', 'Client Production Price', 14],
+    ['active_duty', 'Active Duty (ref.)', 12], ['dependents', 'Dependents (ref.)', 12], ['rate_card_year', 'Rate Card Year', 10], ['last_updated', 'Last Updated', 12], ['notes', 'Notes', 40], ['review', 'Review Flag', 30], ['source', 'Source', 30]];
+  cols.forEach(([k, h, w], i) => { const c = rc.getCell(1, i + 1); c.value = h; hdrCell(c); rc.getColumn(i + 1).width = w; });
+  rc.getRow(1).height = 42;
+  const colIdx = Object.fromEntries(cols.map(([k], i) => [k, i + 1]));
+  const L = k => rc.getColumn(colIdx[k]).letter;
+  const rows = [...RC.rows].sort((a, b) => (a.state || '').localeCompare(b.state || '') || a.base.localeCompare(b.base) || CATS.indexOf(a.category) - CATS.indexOf(b.category) || a.media_type.localeCompare(b.media_type));
+  const changedKeys = new Set((RC.changes || []).map(c => c.base + '|' + c.media));
+  rows.forEach((r, i) => {
+    const ri = i + 2;
+    const review = []; if (!TERMS.some(([t, k]) => r[k] > 0)) review.push('No price on file - inquire'); if (r.rate_card_year && +r.rate_card_year < (S.currentYear || 2025)) review.push('Rate card older than 2025 - reconfirm');
+    cols.forEach(([k], j) => {
+      const c = rc.getCell(ri, j + 1); c.border = boxB; c.alignment = { vertical: 'top', wrapText: ['description', 'notes', 'review', 'media_type', 'base'].includes(k) };
+      if (k.startsWith('client_')) { const src = 'vendor_' + k.split('_')[1]; c.value = { formula: `IF(ISNUMBER(${L(src)}${ri}),ROUND(${L(src)}${ri}/(1-Settings!$B$2)/Settings!$B$3,0)*Settings!$B$3,"")` }; c.numFmt = XL.money; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.light } }; c.font = { bold: true, color: { argb: XL.navy } }; }
+      else if (k === 'review') { c.value = review.join('; '); if (review.length) c.font = { color: { argb: 'FFB45309' } }; }
+      else if (k === 'source') c.value = changedKeys.has(r.base + '|' + r.media_type) ? `Edited in app ${today}` : (r.source || RC.source || '');
+      else if (k === 'last_updated') c.value = changedKeys.has(r.base + '|' + r.media_type) ? today : (r.last_updated || '');
+      else { c.value = r[k] ?? ''; if (k.startsWith('vendor_') || k === 'active_duty' || k === 'dependents') { c.numFmt = k.startsWith('vendor_') ? XL.money : '#,##0'; c.alignment.horizontal = 'right'; } }
+    });
+  });
+  rc.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length + 1, column: cols.length } };
+  // Bases
+  const bs = wb.addWorksheet('Bases', { views: [{ state: 'frozen', ySplit: 1 }] });
+  ['Base', 'Also known as', 'State', 'DMA / Metro', 'Branch', 'Media options', 'Active Duty (ref.)', 'Dependents (ref.)', 'Rate card year(s)'].forEach((h, i) => { const c = bs.getCell(1, i + 1); c.value = h; hdrCell(c); });
+  [...BASES.values()].sort((a, b) => a.state.localeCompare(b.state) || a.base.localeCompare(b.base)).forEach((b, i) => { [b.base, b.aka, b.state, b.dma, b.branch, b.rows.length, b.ad || '', b.dep || '', [...new Set(b.rows.map(r => r.rate_card_year).filter(Boolean))].join(', ')].forEach((v, j) => { const c = bs.getCell(i + 2, j + 1); c.value = v; c.border = boxB; }); });
+  [32, 26, 7, 26, 14, 10, 12, 12, 14].forEach((w, i) => bs.getColumn(i + 1).width = w);
+  // Change Log
+  const cl = wb.addWorksheet('Change Log');
+  ['Date', 'Base', 'Media option', 'What changed', 'From', 'To'].forEach((h, i) => { const c = cl.getCell(1, i + 1); c.value = h; hdrCell(c); });
+  (RC.changes || []).forEach((ch, i) => { [ch.date, ch.base, ch.media, ch.field, ch.from, ch.to].forEach((v, j) => { cl.getCell(i + 2, j + 1).value = v; }); });
+  [12, 30, 30, 20, 16, 16].forEach((w, i) => cl.getColumn(i + 1).width = w);
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); a.download = `Wilkins Military Rate Card - MASTER ${today}.xlsx`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast('Rate card downloaded - save it to Box to share');
 }
 
 /* =========================================================================
@@ -729,7 +907,10 @@ function renderAll() { renderStates(); renderBases(); renderCatFilter(); renderM
 /* =========================================================================
    Boot
    ========================================================================= */
-indexData(); restore(); bindSettings(); renderAll();
+restoreRC(); indexData(); restore(); bindSettings(); renderAll();
+document.getElementById('btnPricing').onclick = () => { UI.mode = UI.mode === 'pricing' ? 'build' : 'pricing'; const b = document.getElementById('btnPricing'); b.innerHTML = UI.mode === 'pricing' ? '<i class="fa-solid fa-arrow-left"></i>Back to proposal' : '<i class="fa-solid fa-pen-to-square"></i>Update pricing'; b.classList.toggle('bg-emerald-600', UI.mode === 'pricing'); renderMedia(); };
+document.getElementById('btnDownloadRC').onclick = () => exportRateCard().catch(e => { console.error(e); toast('Download failed: ' + e.message); });
+document.getElementById('btnResetRC').onclick = () => { if (confirm('Discard all pricing edits saved in this browser and go back to the built-in rate card?')) { localStorage.removeItem(LS_RC); location.reload(); } };
 document.getElementById('search').addEventListener('input', e => { UI.search = e.target.value; renderBases(); });
 document.getElementById('clearStates').onclick = () => { P.selectedStates = []; renderStates(); renderBases(); save(); };
 document.getElementById('clearBases').onclick = () => { P.selectedBases = []; P.lines = {}; renderAll(); save(); };

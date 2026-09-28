@@ -7,6 +7,7 @@ house "Military Media Plan" format.
 ```
 military/
 ├── index.html                                 the app (static page, no build step)
+├── dist/Wilkins Military Proposal Builder.html one-file copy of the app (data + logos inlined) - save this in Box
 ├── Wilkins Military Rate Card - MASTER.xlsx   the standardized rate card David's team maintains
 ├── data/
 │   ├── rate_card.csv                          same data, one row per media option (source of truth for the build)
@@ -14,7 +15,8 @@ military/
 │   └── source_master_export_12.2.25.json      raw export of the old Box master (traceability only)
 ├── tools/
 │   ├── standardize.py                         one-time: raw Box export -> rate_card.csv
-│   └── build_rate_card.py                     rate_card.csv -> MASTER.xlsx + rate_card.js
+│   ├── build_rate_card.py                     rate_card.csv -> MASTER.xlsx + rate_card.js
+│   └── build_standalone.py                    index.html + data + logos -> dist/ one-file app
 └── assets/                                    Wilkins logos
 ```
 
@@ -42,17 +44,27 @@ military/
 Footnotes on every client export: rates based on an N-month flight; subject to base approval;
 contracts non-cancellable; production not included, sizes vary by installation.
 
-## Keeping the rate card current
+## Keeping the rate card current (no technical steps)
 
-1. Edit **Wilkins Military Rate Card - MASTER.xlsx** (Rate Card tab: vendor costs, year of the rate card
-   used, notes). Client prices are formulas driven by the Settings tab.
-2. In the app, click **Load rate card** and pick the edited file. The app re-reads it in the browser;
-   nothing else needs to run.
-3. To bake the new data into the app permanently, export the Rate Card tab to `data/rate_card.csv`
-   and run `python3 tools/build_rate_card.py` (needs `pip install openpyxl`), then commit.
+Rate cards change every year, so the app has an **Update pricing** mode built for whoever is
+onboarding:
 
-Proposals autosave in the browser; **Save proposal** downloads a `.json` you can reopen later or hand
-to someone else.
+1. Pick the installation on the left (or *add a new installation*).
+2. Click **Update pricing**. Type the vendor costs from the base's new rate card into the
+   1 / 3 / 6 / 12-month boxes, set the rate card year, add a note if a price is per unit or has a minimum.
+   Edits save in the browser as you type; client prices are always calculated, never typed.
+3. Click **Download rate card (Excel)** and save the file over the master in Box. Every edit is listed
+   on the Change Log tab with the date.
+4. Anyone else clicks **Load rate card** and picks that file. Their proposals now use the new prices.
+
+The Excel file is the shared source of truth; the app is just the editor and the proposal builder.
+`Reset to built-in data` throws away local edits. The developer path (`tools/build_rate_card.py`)
+still exists for baking a new rate card into the app itself.
+
+## Where the files live
+
+Jon asked that this not live in the shared Box > Military folder. Box folder **Military Rate Card Tool**
+(Jon's own drive) holds the master rate card and the one-file app; the code lives in this repo.
 
 ## Known gaps / follow-ups
 
