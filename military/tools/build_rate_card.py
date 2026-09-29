@@ -59,6 +59,7 @@ COLUMNS = [
     ('active_duty', 'Active Duty (ref.)', 12, '#,##0'), ('dependents', 'Dependents (ref.)', 12, '#,##0'),
     ('rate_card_year', 'Rate Card Year', 10, None), ('last_updated', 'Last Updated', 12, None),
     ('notes', 'Notes', 40, None), ('review', 'Review Flag', 30, None), ('source', 'Source', 30, None),
+    ('box_source_file', 'Rate card file in Box', 34, None), ('box_source_url', 'Link to rate card file', 26, None), ('box_folder_url', 'Box folder', 26, None),
 ]
 
 def num(v):
@@ -93,6 +94,7 @@ def build_xlsx(rows):
         ('Client price rule', 'Client Price = Vendor Cost / (1 - margin), rounded to the nearest $25 (Settings tab). Standard military margin is 50% (vendor x 2). Competitive bids may use a lower margin - change it in the proposal builder, not here.'),
         ('Production', 'Production is never included in the media price. Standard production (quantity of 1): Poster 22x28 $100, Banner 3x6 $350. Other sizes: inquire. Where a base quoted its own production, it is in the Vendor Production Cost column.'),
         ('Review Flag', '"No price on file" = the base lists the item but we have no cost (inquire). "Rate card older than 2025" = reconfirm with the base before quoting. "Source formula errors" = the old master had #VALUE! in that row; verify against the base rate card in Box > Military > 2 Military Installations.'),
+        ('Box source', 'Every row carries the Box folder of the installation and the newest rate-card file in it ("Open in Box"). When you take a price from a new file, paste its Box link in the app (Update pricing) or in these columns.'),
         ('Proposal builder', 'The web app (military/index.html in the EMC_AI_Tool repo) reads this file: use "Load rate card" in the app to pull in your latest edits, then build the proposal and export the client and internal Excel files.'),
     ]
     r = 9
@@ -131,8 +133,10 @@ def build_xlsx(rows):
                 v = num(row[k])
                 if v is not None and v == int(v): v = int(v)
             else:
-                v = row[k]
+                v = row.get(k, '')
             c = rc.cell(row=ri, column=ci, value=v); c.border = BORDER
+            if k in ('box_source_url', 'box_folder_url') and v:
+                c.hyperlink = v; c.value = 'Open in Box'; c.font = Font(color=BLUE, underline='single')
             c.alignment = Alignment(wrap_text=k in ('description', 'notes', 'review', 'media_type', 'base'), vertical='top')
             if fmt: c.number_format = fmt
             if k.startswith('client_'): c.fill = PatternFill('solid', fgColor='EEF7FD'); c.font = Font(color=NAVY, bold=True)
@@ -177,12 +181,12 @@ def build_xlsx(rows):
 def build_js(rows):
     keys = ['id','base','aka','state','dma','zip','branch','category','media_type','ad_unit_size','description',
             'vendor_1mo','vendor_3mo','vendor_6mo','vendor_12mo','vendor_production','min_term_months',
-            'active_duty','dependents','rate_card_year','last_updated','notes','review']
+            'active_duty','dependents','rate_card_year','last_updated','notes','review','box_source_file','box_source_url','box_folder_url']
     data = []
     for r in rows:
         o = {}
         for k in keys:
-            v = r[k]
+            v = r.get(k, '')
             if k.startswith('vendor_') or k in ('active_duty', 'dependents', 'min_term_months'):
                 v = num(v)
                 if v is not None and v == int(v): v = int(v)

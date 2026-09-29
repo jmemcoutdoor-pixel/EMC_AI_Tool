@@ -82,6 +82,45 @@ Jon asked that this not live in the shared Box > Military folder. Box folder **M
 against the rate card (listing pulled Sep 28, 2026). Rebuild with `python3 tools/box_audit.py <date>`
 after saving a fresh listing. See `audit/README.md` for the verdicts.
 
+## Where each price came from
+
+Every row carries the installation's Box folder and the newest rate-card file in it ("Rate card in Box"
+link on each base card, `Link to rate card file` column in the workbook, `Source (Box)` column on the
+internal export). When someone prices a base from a new file, they paste that file's Box link in Update
+pricing and it travels with the row. Edits are stamped with the editor's name (asked once, stored in the
+browser) on the Change Log tab.
+
+## Deployment and sync
+
+**Hosting**: GitHub Pages from this repo (`.github/workflows/pages.yml` publishes the repo root, so the
+calculator stays at `/` and the builder is at `/military/`). Enable it once in the repo settings
+(Settings > Pages > Source: GitHub Actions). No server, no login, nothing to install; the app is a static
+page and proposals are saved as files.
+
+**Box → app (automatic)**: `.github/workflows/sync-rate-card.yml` runs hourly. It downloads
+`Wilkins Military Rate Card - MASTER.xlsx` from Jon's Box folder "Military Rate Card Tool"
+(folder 422333003231), and if the file changed it rebuilds `data/rate_card.js`, the repo copy of the
+workbook and `dist/`, then commits. Pages redeploys on the commit. So an edit to the master in Box shows
+up in the builder within the hour without anyone touching the repo. One-time setup:
+
+1. In Box Developer Console create a Custom App, authentication "Server Authentication (Client
+   Credentials Grant)", application scope "Read all files and folders". Submit it for authorization and
+   have a Box admin approve it (Admin Console > Apps > Custom Apps Manager).
+2. Share the "Military Rate Card Tool" folder with the app's service-account e-mail (shown on the app's
+   General Settings tab) as Viewer.
+3. In GitHub (Settings > Secrets and variables > Actions) add secrets `BOX_CLIENT_ID`,
+   `BOX_CLIENT_SECRET`, `BOX_SUBJECT_ID` (the enterprise ID) and, optionally, variables
+   `BOX_SUBJECT_TYPE` (`enterprise`) and `BOX_FOLDER_ID`.
+4. Run the workflow once by hand (Actions > Sync rate card from Box > Run workflow).
+
+**App → Box (one click)**: after editing prices in the app, "Download rate card (Excel)" produces the
+master workbook; save it over the file in the Box folder. Box keeps every version and who uploaded it,
+which is the "who last worked on it" record. The next hourly sync pulls it back into the app, so the
+loop closes: Box is the system of record, the app is the editor and the proposal builder.
+
+**Proposals in flight** are not affected by a rate-card sync: a proposal keeps the prices it was built
+with until you re-check the item, and the internal export records which rate-card file it used.
+
 ## Known gaps / follow-ups
 
 * 63 options are listed by a base with no cost on file (shown as *inquire*; a manual price can be typed in).
