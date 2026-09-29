@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Military Proposal Builder | Wilkins Media</title>
+<meta name="description" content="Build Wilkins Media military on-base advertising proposals from one standardized rate card: pick installations by state or base, check the media, export client and internal Excel.">
+<meta name="theme-color" content="#1F2A44">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231F2A44'/%3E%3Cpath d='M12 20h7l5 18 5-18h6l5 18 5-18h7l-9 28h-6l-5-17-5 17h-6z' fill='%23fff'/%3E%3Crect x='46' y='12' width='8' height='8' fill='%230092E4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" onerror="window.__libError = 'ExcelJS'"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.__libError = (window.__libError ? window.__libError + ', ' : '') + 'SheetJS'"></script>
+<script src="data/rate_card.js"></script>
+<style>
+/* ---------- Tokens (see DESIGN.md) ---------- */
+:root {
+  --navy-900:#141C30; --navy-800:#1F2A44; --navy-700:#2B3A5C;
+  --blue-600:#0077BB; --blue-500:#0092E4; --blue-100:#D6ECFB; --blue-50:#EEF7FD;
+  --grey-900:#0F172A; --grey-700:#334155; --grey-500:#64748B; --grey-300:#CBD5E1; --grey-200:#E2E8F0; --grey-100:#F1F5F9; --white:#FFFFFF;
+  --green-600:#15803D; --green-50:#ECFDF5; --amber-700:#B45309; --amber-50:#FFFBEB; --red-600:#DC2626; --red-50:#FEF2F2;
+  --text-xs:.75rem; --text-sm:.875rem; --text-md:1rem; --text-lg:1.125rem; --text-xl:1.375rem;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-full:999px;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.08);
+  --shadow-lg:0 12px 32px rgba(15,23,42,.18);
+  --ring:0 0 0 2px var(--white), 0 0 0 4px var(--blue-500);
+  --control-h:40px; --dur:150ms; --ease:cubic-bezier(.2,.7,.3,1);
+  --cat-digital:var(--blue-500); --cat-standard:#3D824F; --cat-large:#C2410C; --cat-print:#6D28D9; --cat-web:#0E7490; --cat-other:var(--grey-500);
+}
+@media (pointer:coarse) { :root { --control-h:44px; } }
+@media (prefers-reduced-motion:reduce) { *, *::before, *::after { transition:none !important; animation:none !important; } }
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body { margin:0; font-family:ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size:var(--text-sm); line-height:1.45; color:var(--grey-900); background:var(--grey-100); min-height:100vh; overflow-x:hidden; }
+h1,h2,h3 { margin:0; }
+button, input, select { font:inherit; color:inherit; }
+button { cursor:pointer; }
+a { color:var(--blue-500); }
+.num { font-variant-numeric:tabular-nums; }
+.muted { color:var(--grey-500); }
+.hidden { display:none !important; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.skip { position:absolute; left:var(--sp-3); top:-60px; background:var(--white); color:var(--navy-800); padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm); z-index:100; }
+.skip:focus { top:var(--sp-3); box-shadow:var(--ring); }
+:focus-visible { outline:none; box-shadow:var(--ring); }
+
+/* ---------- Buttons ---------- */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--sp-2); height:var(--control-h); padding:0 var(--sp-4); border-radius:var(--r-md); border:1px solid transparent; font-size:var(--text-sm); font-weight:600; line-height:1; white-space:nowrap; text-decoration:none; transition:background var(--dur) var(--ease), color var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); user-select:none; }
+.btn:active:not(:disabled) { transform:translateY(1px); }
+.btn:disabled, .btn.is-busy { opacity:.45; cursor:not-allowed; transform:none; }
+.btn-primary { background:var(--blue-500); color:var(--white); }
+.btn-primary:hover:not(:disabled) { background:var(--blue-600); }
+.btn-primary:active:not(:disabled) { background:#00639B; }
+.btn-dark { background:var(--navy-800); color:var(--white); }
+.btn-dark:hover:not(:disabled) { background:var(--navy-700); }
+.btn-dark:active:not(:disabled) { background:var(--navy-900); }
+.btn-secondary { background:var(--white); color:var(--grey-900); border-color:var(--grey-300); }
+.btn-secondary:hover:not(:disabled) { background:var(--grey-100); border-color:var(--grey-500); }
+.btn-secondary:active:not(:disabled) { background:var(--grey-200); }
+.btn-ghost-danger { background:transparent; color:var(--red-600); padding:0 var(--sp-3); }
+.btn-ghost-danger:hover:not(:disabled) { background:var(--red-50); }
+.btn-on-dark { background:rgba(255,255,255,.10); color:var(--white); }
+.btn-on-dark:hover:not(:disabled) { background:rgba(255,255,255,.20); }
+.btn-on-dark:active:not(:disabled) { background:rgba(255,255,255,.28); }
+.btn-sm { height:32px; padding:0 var(--sp-3); font-size:var(--text-xs); }
+.btn-block { width:100%; }
+.btn-icon { width:var(--control-h); padding:0; }
+.btn .spinner { display:none; }
+.btn.is-busy .spinner { display:inline-block; }
+.btn.is-busy .btn-icon-i { display:none; }
+.spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.link { background:none; border:0; padding:0 var(--sp-1); color:var(--blue-500); font-weight:600; font-size:var(--text-xs); cursor:pointer; border-radius:var(--r-sm); min-height:32px; }
+@media (pointer:coarse) { .link { min-height:44px; } }
+.link:hover { color:var(--blue-600); text-decoration:underline; }
+.link:disabled { opacity:.45; cursor:not-allowed; text-decoration:none; }
+.link-muted { color:var(--grey-500); }
+.link-muted:hover { color:var(--grey-700); }
+.link-danger { color:var(--red-600); }
+
+/* ---------- Inputs ---------- */
+.field { display:flex; flex-direction:column; gap:var(--sp-1); min-width:0; }
+.field > span, .label { font-size:var(--text-xs); font-weight:600; color:var(--grey-700); }
+.input, .select { height:var(--control-h); width:100%; padding:0 var(--sp-3); border:1px solid var(--grey-300); border-radius:var(--r-sm); background:var(--white); color:var(--grey-900); font-size:var(--text-sm); transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.input::placeholder { color:var(--grey-500); }
+.input:hover:not(:disabled), .select:hover:not(:disabled) { border-color:var(--grey-500); }
+.input:focus, .select:focus { border-color:var(--blue-500); box-shadow:0 0 0 3px var(--blue-100); outline:none; }
+.input:disabled, .select:disabled { background:var(--grey-100); color:var(--grey-500); cursor:not-allowed; }
+.input.is-invalid { border-color:var(--red-600); box-shadow:0 0 0 3px var(--red-50); }
+.input-sm { height:32px; padding:0 var(--sp-2); font-size:var(--text-xs); }
+.input-num { text-align:right; font-variant-numeric:tabular-nums; }
+.field-error { font-size:var(--text-xs); color:var(--red-600); font-weight:600; }
+.field-error:empty { display:none; }
+.check { display:flex; align-items:center; gap:var(--sp-2); cursor:pointer; min-height:32px; font-size:var(--text-sm); }
+.check input { width:18px; height:18px; accent-color:var(--blue-500); margin:0; flex:none; cursor:pointer; }
+.input-wrap { position:relative; }
+.input-wrap i { position:absolute; left:var(--sp-3); top:50%; transform:translateY(-50%); color:var(--grey-500); font-size:var(--text-xs); pointer-events:none; }
+.input-wrap .input { padding-left:calc(var(--sp-3) * 2 + 12px); }
+
+/* ---------- Chips, badges, cards ---------- */
+.chip { display:inline-flex; align-items:center; gap:var(--sp-1); height:32px; padding:0 var(--sp-3); border-radius:var(--r-full); border:1px solid var(--grey-300); background:var(--white); color:var(--grey-700); font-size:var(--text-xs); font-weight:600; transition:background var(--dur) var(--ease), color var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.chip:hover { border-color:var(--blue-500); color:var(--blue-600); }
+.chip.is-on { background:var(--blue-500); border-color:var(--blue-500); color:var(--white); }
+.chip.is-on:hover { background:var(--blue-600); }
+.chip .count { opacity:.7; font-weight:500; }
+@media (pointer:coarse) { .chip { height:36px; } }
+.chips { display:flex; flex-wrap:wrap; gap:var(--sp-2); }
+.badge { display:inline-flex; align-items:center; height:20px; padding:0 var(--sp-2); border-radius:var(--r-full); font-size:var(--text-xs); font-weight:600; line-height:1; white-space:nowrap; }
+.badge-blue { background:var(--blue-100); color:var(--blue-600); }
+.badge-solid { background:var(--blue-500); color:var(--white); }
+.badge-grey { background:var(--grey-200); color:var(--grey-700); }
+.badge-green { background:var(--green-50); color:var(--green-600); }
+.badge-amber { background:var(--amber-50); color:var(--amber-700); }
+.card { background:var(--white); border:1px solid var(--grey-200); border-radius:var(--r-lg); box-shadow:var(--shadow-sm); padding:var(--sp-4); }
+@media (min-width:1024px) { .card { padding:var(--sp-5); } }
+.card-head { display:flex; align-items:center; flex-wrap:wrap; gap:var(--sp-2) var(--sp-3); margin-bottom:var(--sp-4); }
+.card-head h2 { font-size:var(--text-lg); font-weight:700; }
+.step { width:28px; height:28px; border-radius:var(--r-full); background:var(--blue-100); color:var(--blue-600); display:inline-flex; align-items:center; justify-content:center; font-size:var(--text-xs); font-weight:700; flex:none; }
+.subcard { border:1px solid var(--grey-200); border-radius:var(--r-md); overflow:hidden; background:var(--white); }
+.subcard-head { display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-1) var(--sp-3); padding:var(--sp-3) var(--sp-4); background:var(--grey-100); border-bottom:1px solid var(--grey-200); }
+.subcard-head h3 { font-size:var(--text-md); font-weight:700; color:var(--navy-800); }
+.subcard-actions { margin-left:auto; display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-3); }
+.panel-title { display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2); margin:var(--sp-3) 0 var(--sp-1); }
+.panel-title > span:first-child { font-size:var(--text-xs); font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--grey-500); }
+.panel-title .links { display:flex; gap:var(--sp-3); }
+
+/* ---------- Notices / states ---------- */
+.notice { border-radius:var(--r-md); padding:var(--sp-4); font-size:var(--text-sm); }
+.notice-info { background:var(--blue-50); border:1px solid var(--blue-100); color:var(--grey-700); }
+.notice-info strong, .notice-info b { color:var(--navy-800); }
+.notice-error { background:var(--red-50); border:1px solid #FECACA; color:#991B1B; }
+.notice-warn { background:var(--amber-50); border:1px solid #FDE68A; color:var(--amber-700); }
+.notice h3 { font-size:var(--text-md); margin-bottom:var(--sp-1); }
+.notice ol { margin:var(--sp-2) 0 0; padding-left:var(--sp-5); }
+.notice li + li { margin-top:var(--sp-1); }
+.empty { border:1px dashed var(--grey-300); border-radius:var(--r-md); padding:var(--sp-6) var(--sp-4); text-align:center; color:var(--grey-500); display:flex; flex-direction:column; align-items:center; gap:var(--sp-3); }
+.empty i { font-size:1.75rem; color:var(--grey-300); }
+.empty p { margin:0; max-width:36ch; }
+.toast { position:fixed; left:50%; bottom:calc(var(--sp-5) + env(safe-area-inset-bottom)); transform:translate(-50%, 8px); background:var(--navy-800); color:var(--white); padding:var(--sp-3) var(--sp-4); border-radius:var(--r-md); box-shadow:var(--shadow-lg); font-size:var(--text-sm); font-weight:600; opacity:0; pointer-events:none; transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease); z-index:90; max-width:calc(100vw - 2 * var(--sp-4)); display:flex; gap:var(--sp-2); align-items:center; }
+.toast.show { opacity:1; transform:translate(-50%, 0); }
+.toast-success { background:var(--green-600); }
+.toast-error { background:var(--red-600); }
+@media (max-width:1023px) { .toast { bottom:calc(72px + env(safe-area-inset-bottom)); } }
+
+/* ---------- Header ---------- */
+.header { background:var(--navy-800); color:var(--white); }
+.header-inner { max-width:1700px; margin:0 auto; padding:var(--sp-3) var(--sp-4); display:flex; align-items:center; gap:var(--sp-3); position:relative; }
+.header-inner img { height:22px; width:auto; flex:none; }
+.header-rule { width:1px; height:32px; background:rgba(255,255,255,.3); }
+.header-title { min-width:0; flex:1; }
+.header-title h1 { font-size:var(--text-lg); font-weight:700; line-height:1.25; }
+.header-title p { margin:2px 0 0; font-size:var(--text-xs); color:rgba(255,255,255,.72); }
+.header-actions { display:flex; align-items:center; gap:var(--sp-2); }
+.menu-btn { display:none; }
+.menu { display:none; }
+.statusbar { background:var(--navy-900); color:rgba(255,255,255,.78); font-size:var(--text-xs); padding:var(--sp-1) var(--sp-4); display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:var(--sp-1) var(--sp-4); text-align:center; }
+.statusbar .warn { color:#FCD34D; font-weight:600; }
+.statusbar .link { color:var(--white); font-weight:600; opacity:.9; }
+.statusbar .link:hover { opacity:1; }
+@media (max-width:1023px) {
+  .header-rule, .header-title p { display:none; }
+  .header-actions { display:none; }
+  .menu-btn { display:inline-flex; }
+  .menu { display:block; position:absolute; right:var(--sp-4); top:calc(100% - var(--sp-2)); background:var(--white); color:var(--grey-900); border-radius:var(--r-md); box-shadow:var(--shadow-lg); border:1px solid var(--grey-200); padding:var(--sp-2); min-width:240px; z-index:60; opacity:0; transform:translateY(-6px); pointer-events:none; transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
+  .menu.open { opacity:1; transform:none; pointer-events:auto; }
+  .menu .btn { width:100%; justify-content:flex-start; background:transparent; color:var(--grey-900); border:0; }
+  .menu .btn:hover { background:var(--grey-100); }
+  .menu .btn-primary { background:var(--blue-500); color:var(--white); }
+  .menu .btn-primary:hover { background:var(--blue-600); }
+}
+
+/* ---------- Layout ---------- */
+.main { max-width:1700px; margin:0 auto; padding:var(--sp-4); display:grid; grid-template-columns:1fr; gap:var(--sp-4); }
+@media (min-width:1024px) { .main { grid-template-columns:3fr 6fr 3fr; align-items:start; } }
+.panel { min-width:0; display:flex; flex-direction:column; gap:var(--sp-4); }
+.tabbar { display:none; }
+@media (max-width:1023px) {
+  .main { padding-bottom:calc(88px + env(safe-area-inset-bottom)); }
+  .panel { display:none; animation:fadein 200ms var(--ease); }
+  .panel.is-active { display:flex; }
+  .tabbar { position:fixed; left:0; right:0; bottom:0; display:grid; grid-template-columns:repeat(3, 1fr); background:var(--white); border-top:1px solid var(--grey-200); box-shadow:0 -4px 16px rgba(15,23,42,.08); padding-bottom:env(safe-area-inset-bottom); z-index:50; }
+  .tabbar button { background:none; border:0; min-height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:var(--text-xs); font-weight:600; color:var(--grey-500); position:relative; border-top:2px solid transparent; transition:color var(--dur) var(--ease); }
+  .tabbar button i { font-size:1.1rem; }
+  .tabbar button.is-active { color:var(--blue-500); border-top-color:var(--blue-500); }
+  .tabbar .badge { position:absolute; top:8px; right:calc(50% - 26px); height:18px; padding:0 6px; }
+}
+@keyframes fadein { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+/* ---------- Targets ---------- */
+.base-list { max-height:56vh; overflow-y:auto; border:1px solid var(--grey-200); border-radius:var(--r-md); }
+@media (max-width:1023px) { .base-list { max-height:none; } }
+.base-row { display:flex; align-items:flex-start; gap:var(--sp-2); padding:var(--sp-2) var(--sp-3); min-height:44px; cursor:pointer; border-bottom:1px solid var(--grey-100); transition:background var(--dur) var(--ease); }
+.base-row:last-child { border-bottom:0; }
+.base-row:hover { background:var(--grey-100); }
+.base-row.is-on { background:var(--blue-50); }
+.base-row input { margin-top:3px; width:18px; height:18px; accent-color:var(--blue-500); flex:none; }
+.base-row .name { font-size:var(--text-sm); font-weight:600; line-height:1.3; overflow-wrap:anywhere; }
+.base-row .name small { font-weight:400; color:var(--grey-500); }
+.base-row .meta { font-size:var(--text-xs); color:var(--grey-500); overflow-wrap:anywhere; }
+.base-row .badges { margin-left:auto; display:flex; gap:var(--sp-1); flex:none; padding-top:2px; }
+
+/* ---------- Media options ---------- */
+.cat { border-top:1px solid var(--grey-200); }
+.cat > summary { list-style:none; display:flex; align-items:center; gap:var(--sp-2); padding:var(--sp-2) var(--sp-4); min-height:40px; font-size:var(--text-xs); font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--grey-500); background:var(--grey-100); cursor:pointer; }
+.cat > summary::-webkit-details-marker { display:none; }
+.cat > summary i { transition:transform var(--dur) var(--ease); font-size:.6rem; }
+.cat[open] > summary i { transform:rotate(90deg); }
+.cat > summary .count { font-weight:500; }
+.row { padding:var(--sp-3) var(--sp-4); border-left:4px solid var(--grey-300); border-bottom:1px solid var(--grey-100); transition:background var(--dur) var(--ease); }
+.row:hover { background:var(--grey-100); }
+.row.is-on { background:var(--blue-50); }
+.row-main { display:flex; gap:var(--sp-3); align-items:flex-start; }
+.row-main > input { margin-top:4px; width:18px; height:18px; accent-color:var(--blue-500); flex:none; }
+.row-body { flex:1; min-width:0; }
+.row-title { display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-1) var(--sp-2); }
+.row-title .t { font-size:var(--text-sm); font-weight:600; overflow-wrap:anywhere; }
+.row-desc { font-size:var(--text-xs); color:var(--grey-500); margin-top:2px; overflow-wrap:anywhere; }
+.row-desc .note { color:var(--amber-700); }
+.row-vendor { font-size:var(--text-xs); color:var(--grey-500); margin-top:2px; }
+.row-price { text-align:right; flex:none; max-width:45%; }
+.row-price .p { font-size:var(--text-md); font-weight:700; color:var(--navy-800); }
+.row-price .p.muted { color:var(--grey-500); font-weight:600; }
+.row-price .b { font-size:var(--text-xs); color:var(--grey-500); overflow-wrap:anywhere; }
+.row-edit { display:flex; flex-wrap:wrap; align-items:flex-end; gap:var(--sp-2) var(--sp-3); margin-top:var(--sp-2); padding-left:30px; }
+.row-edit .field-mini { width:76px; }
+.row-edit .field-money { width:96px; }
+.row-edit .field-wide { flex:1 1 160px; }
+.cat-Digital { border-left-color:var(--cat-digital); } .cat-Standard { border-left-color:var(--cat-standard); } .cat-Large { border-left-color:var(--cat-large); } .cat-Print { border-left-color:var(--cat-print); } .cat-Web { border-left-color:var(--cat-web); } .cat-Sponsorship { border-left-color:var(--cat-other); }
+.tools { margin-left:auto; display:flex; flex-wrap:wrap; gap:var(--sp-2) var(--sp-4); }
+
+/* ---------- Pricing editor ---------- */
+.edit-table { width:100%; border-collapse:collapse; font-size:var(--text-xs); }
+.edit-table th { text-align:left; padding:var(--sp-2) var(--sp-2); font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--grey-500); background:var(--grey-100); white-space:nowrap; }
+.edit-table th.v { background:var(--blue-50); color:var(--blue-600); }
+.edit-table td { padding:var(--sp-1) var(--sp-2); border-top:1px solid var(--grey-100); vertical-align:top; }
+.edit-table td.v { background:var(--blue-50); }
+.edit-table .input-sm { min-width:64px; }
+.edit-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.edit-cards { display:none; }
+@media (max-width:767px) { .source-fields { grid-template-columns:1fr !important; } }
+@media (max-width:767px) {
+  .edit-wrap { display:none; }
+  .edit-cards { display:flex; flex-direction:column; gap:var(--sp-3); padding:var(--sp-3); }
+  .edit-card { border:1px solid var(--grey-200); border-radius:var(--r-md); padding:var(--sp-3); display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2) var(--sp-3); }
+  .edit-card .span2 { grid-column:1 / -1; }
+  .edit-card .input-sm { height:var(--control-h); font-size:var(--text-sm); }
+}
+.flash { box-shadow:0 0 0 3px var(--green-50); border-color:var(--green-600) !important; }
+
+/* ---------- Proposal ---------- */
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+.form-grid .span2 { grid-column:1 / -1; }
+.settings { border:1px solid var(--grey-200); border-radius:var(--r-md); background:var(--grey-100); padding:var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2); }
+.settings .sub { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2) var(--sp-3); padding-left:26px; transition:opacity var(--dur) var(--ease); }
+.settings .sub.is-off { opacity:.5; }
+.settings .example { font-size:var(--text-xs); color:var(--grey-500); align-self:end; padding-bottom:6px; }
+.summary-table { width:100%; border-collapse:collapse; font-size:var(--text-sm); }
+.summary-table td { padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--grey-100); vertical-align:top; }
+.summary-table td:last-child { text-align:right; font-weight:600; white-space:nowrap; }
+.summary-table .sub { font-size:var(--text-xs); color:var(--grey-500); }
+.summary-table tr.total td { background:var(--navy-800); color:var(--white); font-weight:700; border:0; }
+.summary-table tr.total td:last-child { font-size:var(--text-lg); }
+.summary-table tr.internal td { background:var(--grey-100); color:var(--grey-700); font-weight:500; }
+.summary-table tr.internal td:last-child { font-weight:600; }
+.summary-table tr.internal .profit { color:var(--green-600); }
+.summary-wrap { border:1px solid var(--grey-200); border-radius:var(--r-md); overflow:hidden; }
+.rules { font-size:var(--text-xs); color:var(--grey-700); }
+.rules p { margin:0 0 var(--sp-1); font-weight:700; color:var(--grey-900); }
+.rules ul { margin:0; padding-left:var(--sp-4); }
+.rules li + li { margin-top:var(--sp-1); }
+.export-note { font-size:var(--text-xs); color:var(--grey-500); text-align:center; margin:0; }
+.stack { display:flex; flex-direction:column; gap:var(--sp-2); }
+</style>
+</head>
+<body>
+<a class="skip" href="#panel-media">Skip to media options</a>
+
+<header class="header">
+  <div class="header-inner">
+    <img src="assets/wilkins-logo-white.png" alt="Wilkins Media">
+    <div class="header-rule" aria-hidden="true"></div>
+    <div class="header-title">
+      <h1>Military Proposal Builder</h1>
+      <p>Build on-base media proposals from one rate card: pick installations, check the media, export client and internal Excel.</p>
+    </div>
+    <div class="header-actions" id="headerActions">
+      <label class="btn btn-on-dark" title="Load an edited 'Wilkins Military Rate Card - MASTER.xlsx' to replace the built-in rate card"><i class="fa-solid fa-file-arrow-up"></i>Load rate card<input id="rateCardFile" type="file" accept=".xlsx,.csv" class="sr-only"></label>
+      <button id="btnSave" class="btn btn-on-dark" type="button"><i class="fa-solid fa-floppy-disk"></i>Save proposal</button>
+      <label class="btn btn-on-dark"><i class="fa-solid fa-folder-open"></i>Open<input id="proposalFile" type="file" accept=".json" class="sr-only"></label>
+      <button id="btnNew" class="btn btn-on-dark" type="button"><i class="fa-solid fa-plus"></i>New</button>
+      <button id="btnPricing" class="btn btn-primary" type="button"><i class="fa-solid fa-pen-to-square"></i>Update pricing</button>
+    </div>
+    <button id="menuBtn" class="btn btn-on-dark btn-icon menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i class="fa-solid fa-bars"></i></button>
+    <div id="menu" class="menu" role="menu" aria-label="Actions"></div>
+  </div>
+  <div class="statusbar">
+    <span id="dataBar">Loading rate card…</span>
+    <span id="dirtyBar" class="warn hidden"></span>
+    <button id="btnDownloadRC" class="link" type="button" title="Download the full rate card as the MASTER Excel file to share in Box"><i class="fa-solid fa-download"></i> Download rate card (Excel)</button>
+    <button id="btnResetRC" class="link hidden" type="button">Reset to built-in data</button>
+    <button id="btnWho" class="link" type="button" title="The name recorded with your pricing edits"><i class="fa-solid fa-user"></i> <span id="whoLabel">Set your name</span></button>
+  </div>
+</header>
+
+<div id="libError" class="hidden" style="max-width:1700px;margin:var(--sp-4) auto 0;padding:0 var(--sp-4)"></div>
+
+<main class="main" id="main">
+  <!-- Targets -->
+  <section class="panel is-active" id="panel-targets" data-tab="targets" aria-labelledby="h-targets">
+    <div class="card">
+      <div class="card-head"><span class="step">1</span><h2 id="h-targets">Target installations</h2></div>
+      <div class="input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="search" type="search" class="input" placeholder="Search base, state, DMA, branch" aria-label="Search installations"></div>
+      <div class="panel-title"><span>By state</span><div class="links"><button id="clearStates" class="link link-muted" type="button">Clear</button></div></div>
+      <div id="stateChips" class="chips" role="group" aria-label="Filter by state"></div>
+      <div class="panel-title"><span>Bases <span id="baseCount" class="muted" style="font-weight:500;text-transform:none"></span></span><div class="links"><button id="selectAllBases" class="link" type="button">Select shown</button><button id="clearBases" class="link link-muted" type="button">Clear</button></div></div>
+      <div id="baseList" class="base-list" role="group" aria-label="Installations"></div>
+    </div>
+  </section>
+
+  <!-- Media -->
+  <section class="panel" id="panel-media" data-tab="media" aria-labelledby="h-media">
+    <div class="card">
+      <div class="card-head">
+        <span class="step">2</span><h2 id="h-media">Media options</h2>
+        <span id="selSummary" class="muted" style="font-size:var(--text-xs)"></span>
+        <div id="mediaTools" class="tools">
+          <label class="check"><input type="checkbox" id="showInternal" checked><span>Show vendor cost &amp; margin</span></label>
+          <label class="check"><input type="checkbox" id="onlySelected"><span>Only checked</span></label>
+        </div>
+      </div>
+      <div id="catFilter" class="chips" role="group" aria-label="Filter by category" style="margin-bottom:var(--sp-4)"></div>
+      <div id="mediaPanel" class="stack" style="gap:var(--sp-4)"></div>
+    </div>
+  </section>
+
+  <!-- Proposal -->
+  <section class="panel" id="panel-proposal" data-tab="proposal" aria-labelledby="h-proposal">
+    <div class="card">
+      <div class="card-head"><span class="step">3</span><h2 id="h-proposal">Proposal</h2></div>
+      <div class="form-grid">
+        <label class="field span2"><span>Client</span><input id="clientName" class="input" autocomplete="organization" required><span class="field-error" id="err-clientName"></span></label>
+        <label class="field"><span>Prepared by</span><input id="preparedBy" class="input" autocomplete="name"></label>
+        <label class="field"><span>Date</span><input id="propDate" type="date" class="input"></label>
+        <label class="field"><span>Flight length (months)</span><input id="months" type="number" min="1" max="36" step="0.5" class="input input-num" inputmode="decimal"><span class="field-error" id="err-months"></span></label>
+        <label class="field"><span>Pricing method</span><select id="method" class="select"><option value="monthly">Monthly rate × months (standard)</option><option value="term">Rate-card term price (1/3/6/12)</option></select></label>
+      </div>
+
+      <div class="settings" style="margin-top:var(--sp-4)">
+        <label class="check"><input type="checkbox" id="marginOn" checked><span><b>Apply military markup</b></span></label>
+        <div id="marginBox" class="sub">
+          <label class="field"><span>Margin %</span><input id="marginPct" type="number" min="0" max="90" step="1" value="50" class="input input-sm input-num" inputmode="numeric"><span class="field-error" id="err-marginPct"></span></label>
+          <label class="field"><span>Basis</span><select id="marginMode" class="select input-sm"><option value="margin">Margin on price (50% = ×2)</option><option value="markup">Markup on cost (50% = ×1.5)</option></select></label>
+          <label class="field"><span>Round to</span><select id="roundTo" class="select input-sm"><option value="25">Nearest $25</option><option value="5">Nearest $5</option><option value="1">Whole dollars</option><option value="0">No rounding</option></select></label>
+          <div class="example">Vendor $600 → <b id="marginExample" style="color:var(--grey-900)"></b></div>
+        </div>
+        <label class="check"><input type="checkbox" id="prodOn"><span><b>Include production on checked items</b></span></label>
+        <div id="prodBox" class="sub">
+          <label class="field"><span>Poster 22×28</span><input id="prodPoster" type="number" step="5" min="0" class="input input-sm input-num" inputmode="numeric"></label>
+          <label class="field"><span>Banner 3×6</span><input id="prodBanner" type="number" step="5" min="0" class="input input-sm input-num" inputmode="numeric"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="showPop" checked><span>Show base population in export</span></label>
+        <label class="check"><input type="checkbox" id="showScreens" checked><span>Show # units / screens in export</span></label>
+      </div>
+
+      <div id="summary" style="margin-top:var(--sp-4)"></div>
+
+      <div class="stack" style="margin-top:var(--sp-4)">
+        <button id="exportClient" class="btn btn-primary btn-block" type="button"><span class="spinner" aria-hidden="true"></span><i class="fa-solid fa-file-excel btn-icon-i"></i><span class="lbl">Export client Excel</span></button>
+        <button id="exportInternal" class="btn btn-dark btn-block" type="button"><span class="spinner" aria-hidden="true"></span><i class="fa-solid fa-file-excel btn-icon-i"></i><span class="lbl">Export internal Excel</span></button>
+        <p class="export-note">Client file has prices only, no vendor cost. Internal file adds vendor cost, profit and margin.</p>
+      </div>
+    </div>
+    <div class="card rules">
+      <p>House rules built in</p>
+      <ul>
+        <li>Default 3-month flight; standard price = 1-month vendor rate × months, marked up.</li>
+        <li>Items with no 1-month rate use their shortest term (for example a 3-month minimum) scaled to the flight.</li>
+        <li>Production is never included unless you check it: $100 poster, $350 banner, other sizes inquire.</li>
+        <li>Rate cards older than 2025 are flagged <span class="badge badge-amber">reconfirm</span>. Items with no cost show <span class="badge badge-grey">inquire</span> and can be priced by hand.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar" aria-label="Sections">
+  <button type="button" data-tab="targets" class="is-active"><i class="fa-solid fa-location-dot"></i>Targets<span class="badge badge-solid hidden" id="tabBadgeTargets"></span></button>
+  <button type="button" data-tab="media"><i class="fa-solid fa-list-check"></i>Media<span class="badge badge-solid hidden" id="tabBadgeMedia"></span></button>
+  <button type="button" data-tab="proposal"><i class="fa-solid fa-file-invoice-dollar"></i>Proposal</button>
+</nav>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================================================================
+   Data
+   ========================================================================= */
+const CATS = ['Digital','Standard Media','Large Format','Print & Publications','Web & Email','Sponsorship & Other'];
+const TERMS = [[1,'vendor_1mo'],[3,'vendor_3mo'],[6,'vendor_6mo'],[12,'vendor_12mo']];
+let RC = window.WILKINS_RATE_CARD || { rows: [], settings: {}, source: 'none', generated: '' };
+let ROWS = [], BASES = new Map();
+const S = RC.settings || {};
+
+function indexData() {
+  ROWS = RC.rows;   // same objects, so pricing edits persist through saveRC()
+  BASES = new Map();
+  for (const r of ROWS) {
+    r.baseKey = (r.state || 'XX') + '|' + r.base;
+    let b = BASES.get(r.baseKey);
+    if (!b) { b = { key: r.baseKey, base: r.base, aka: r.aka || '', state: r.state || '', dma: r.dma || '', zip: r.zip || '', branch: r.branch || '', ad: r.active_duty, dep: r.dependents, rows: [], years: new Set() }; BASES.set(r.baseKey, b); }
+    b.rows.push(r);
+    if (r.rate_card_year) b.years.add(String(r.rate_card_year));
+    if (!b.ad && r.active_duty) b.ad = r.active_duty;
+    if (!b.dep && r.dependents) b.dep = r.dependents;
+  }
+  document.getElementById('dataBar').textContent = `Rate card: ${RC.source} · ${ROWS.length} media options · ${BASES.size} installations · data as of ${RC.generated || 'n/a'}`;
+  updateDirtyBar();
+}
+function updateDirtyBar() {
+  const n = (RC.changes || []).length;
+  const d = document.getElementById('dirtyBar');
+  d.classList.toggle('hidden', !n);
+  d.textContent = n ? `${n} pricing edit${n === 1 ? '' : 's'} saved in this browser. Download the rate card to share them.` : '';
+  document.getElementById('btnResetRC').classList.toggle('hidden', !RC.local);
+}
+const LS_RC = 'wilkins-rate-card-v1';
+function saveRC() { RC.local = true; try { localStorage.setItem(LS_RC, JSON.stringify(RC)); } catch (e) { toast('Could not save locally: browser storage is full or blocked.', 'error'); } }
+function restoreRC() { try { const s = localStorage.getItem(LS_RC); if (s) { const o = JSON.parse(s); if (o && o.rows && o.rows.length) { RC = o; Object.assign(S, o.settings || {}); } } } catch (e) {} }
+function whoAmI() { let n = ''; try { n = localStorage.getItem('wilkins-user-name') || ''; } catch (e) {} if (!n) { n = (prompt('Your name (shown in the change log so the team knows who updated pricing):') || '').trim(); try { if (n) localStorage.setItem('wilkins-user-name', n); } catch (e) {} } return n; }
+function logChange(base, media, field, from, to) { (RC.changes = RC.changes || []).push({ date: new Date().toISOString().slice(0, 10), by: whoAmI(), base, media, field, from: from ?? '', to: to ?? '' }); }
+
+/* =========================================================================
+   Proposal state
+   ========================================================================= */
+let P = defaultProposal();
+function defaultProposal() {
+  return {
+    client: '', preparedBy: '', date: new Date().toISOString().slice(0,10),
+    months: S.defaultMonths || 3, method: 'monthly',
+    marginOn: true, marginPct: Math.round((S.margin || 0.5) * 100), marginMode: 'margin', roundTo: S.roundTo ?? 25,
+    prodOn: false, prodPoster: S.prodPosterClient || 100, prodBanner: S.prodBannerClient || 350,
+    showPop: true, showScreens: true,
+    selectedStates: [], selectedBases: [], lines: {}
+  };
+}
+const UI = { search: '', catFilter: null, showInternal: true, onlySelected: false, mode: 'build', tab: 'targets' };
+
+/* =========================================================================
+   Pricing engine
+   ========================================================================= */
+function fmt$(n, dash = '—') { if (n == null || isNaN(n)) return dash; return '$' + Math.round(n).toLocaleString('en-US'); }
+function roundTo(n, step) { if (!step) return n; return Math.round(n / step) * step; }
+function factor() {
+  if (!P.marginOn) return 1;
+  const m = Math.min(90, Math.max(0, +P.marginPct || 0)) / 100;
+  return P.marginMode === 'markup' ? (1 + m) : (1 / (1 - m));
+}
+function clientFromVendor(v) { if (v == null) return null; return roundTo(v * factor(), P.marginOn ? +P.roundTo : 0); }
+
+function vendorForFlight(r, line) {
+  const months = +P.months || 1;
+  const avail = TERMS.filter(([t, k]) => r[k] != null && r[k] > 0);
+  if (line && line.vendor != null) return { vendor: line.vendor, basis: 'manual vendor cost', manual: true };
+  if (!avail.length) return { vendor: null, basis: 'no cost on file: inquire' };
+  const termWanted = line && line.term ? +line.term : null;
+  if (termWanted) { const hit = avail.find(([t]) => t === termWanted); if (hit) return { vendor: r[hit[1]], basis: `${termWanted}-month rate-card price`, term: termWanted }; }
+  if (P.method === 'term') { const hit = avail.find(([t]) => t === months); if (hit) return { vendor: r[hit[1]], basis: `${months}-month rate-card price`, term: months }; }
+  const one = avail.find(([t]) => t === 1);
+  if (one) return { vendor: r.vendor_1mo * months, basis: `${fmt$(r.vendor_1mo)}/mo × ${months}`, term: 1 };
+  const [t, k] = avail[0];
+  if (months <= t) return { vendor: r[k], basis: `${t}-month minimum (${fmt$(r[k])})`, term: t, minTerm: t };
+  const mult = months / t;
+  return { vendor: r[k] * mult, basis: `${t}-mo rate ${fmt$(r[k])} × ${+mult.toFixed(2)}`, term: t, minTerm: t };
+}
+function prodStandard(r) {
+  const m = (r.media_type + ' ' + (r.ad_unit_size || '')).toLowerCase();
+  if (r.category === 'Standard Media' && /poster/.test(m)) return { client: +P.prodPoster, cost: S.prodPosterCost || 50, label: 'Poster 22"W x 28"H' };
+  if (r.category === 'Standard Media' && /banner/.test(m)) return { client: +P.prodBanner, cost: S.prodBannerCost || 96, label: 'Banner 3\'H x 6\'W' };
+  return null;
+}
+function screensFromDesc(r) {
+  if (r.category !== 'Digital') return null;
+  const t = (r.description || '') + ' ' + (r.media_type || '');
+  const m = t.match(/(\d{1,4})\s+(?:approved\s+|indoor\s+|outdoor\s+|digital\s+|bowling\s+|installation\s+|on-base\s+)*(?:digital|monitor|screen|kiosk|display|tv|television|marquee|lane|gate|location|facilit)/i);
+  return m ? +m[1] : null;
+}
+function priceLine(r, line) {
+  const qty = Math.max(1, +(line && line.qty) || 1);
+  const vf = vendorForFlight(r, line);
+  const vendorUnit = vf.vendor;
+  const clientUnit = (line && line.price != null) ? line.price : clientFromVendor(vendorUnit);
+  const media = clientUnit != null ? clientUnit * qty : null;
+  const vendorExt = vendorUnit != null ? vendorUnit * qty : null;
+  let prodClient = 0, prodCost = 0, prodLabel = '';
+  if (line && line.prod) {
+    if (r.vendor_production > 0) { prodCost = r.vendor_production * qty; prodClient = clientFromVendor(r.vendor_production) * qty; prodLabel = 'per rate card'; }
+    else { const ps = prodStandard(r); if (ps) { prodCost = ps.cost * qty; prodClient = ps.client * qty; prodLabel = ps.label; } else { prodLabel = 'inquire'; } }
+  }
+  const screens = screensFromDesc(r);
+  return { qty, screens, units: screens ? screens * qty : qty, vendorUnit, clientUnit, media, vendorExt, prodClient, prodCost, prodLabel, basis: vf.basis, minTerm: vf.minTerm, manualPrice: line && line.price != null, manualVendor: vf.manual };
+}
+function planColumn(r) {
+  const m = r.media_type.toLowerCase();
+  if (r.category === 'Digital') {
+    if (/kiosk/.test(m)) return 'Digital Kiosk Network';
+    if (/bowling|lane|sweep|pin|rake|masking|swing/.test(m)) return 'Bowling Monitors';
+    if (/marquee|signage/.test(m)) return 'Digital Marquee';
+    if (/theat|cinema|movie|commercial|preview/.test(m)) return 'Movie Theater';
+    if (/billboard/.test(m)) return 'Digital Billboard';
+    return 'Digital Monitor Network';
+  }
+  if (r.category === 'Standard Media') {
+    if (/vertical|pop.?up|retract|standee/.test(m)) return 'Vertical / Pop-Up Banner';
+    if (/banner/.test(m)) return 'Banner';
+    if (/poster/.test(m)) return 'Poster';
+    if (/table tent|tent/.test(m)) return 'Table Tents';
+    if (/golf|tee|driving|range/.test(m)) return 'Golf Course';
+    return 'Standard Media - Other';
+  }
+  if (r.category === 'Large Format') {
+    if (/counter/.test(m)) return 'Counter Wrap';
+    if (/window|wall|floor|cling|wrap|graphic/.test(m)) return 'Wall / Window Cling';
+    return 'Large Format Banner';
+  }
+  if (r.category === 'Print & Publications') return 'Publication Ad';
+  if (r.category === 'Web & Email') return 'Web / Email / Social';
+  return 'Sponsorship / Other';
+}
+
+/* =========================================================================
+   Rendering: targets
+   ========================================================================= */
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function stateCounts() { const c = new Map(); for (const b of BASES.values()) c.set(b.state || '—', (c.get(b.state || '—') || 0) + 1); return [...c.entries()].sort((a, b) => a[0].localeCompare(b[0])); }
+function renderStates() {
+  const el = document.getElementById('stateChips'); el.innerHTML = '';
+  for (const [st, n] of stateCounts()) {
+    const b = document.createElement('button'); b.type = 'button';
+    const on = P.selectedStates.includes(st);
+    b.className = 'chip' + (on ? ' is-on' : ''); b.setAttribute('aria-pressed', on);
+    b.innerHTML = `${st} <span class="count">${n}</span>`;
+    b.onclick = () => { const i = P.selectedStates.indexOf(st); if (i >= 0) P.selectedStates.splice(i, 1); else P.selectedStates.push(st); renderStates(); renderBases(); save(); };
+    el.appendChild(b);
+  }
+}
+function visibleBases() {
+  const q = UI.search.trim().toLowerCase();
+  let list = [...BASES.values()];
+  if (P.selectedStates.length) list = list.filter(b => P.selectedStates.includes(b.state || '—'));
+  if (q) list = list.filter(b => [b.base, b.aka, b.state, b.dma, b.branch, b.zip].join(' ').toLowerCase().includes(q));
+  return list.sort((a, b) => (a.state || 'zz').localeCompare(b.state || 'zz') || a.base.localeCompare(b.base));
+}
+function renderBases() {
+  const el = document.getElementById('baseList'); el.innerHTML = '';
+  const list = visibleBases();
+  document.getElementById('baseCount').textContent = `(${list.length})`;
+  if (!list.length) { el.innerHTML = `<div class="empty" style="border:0"><i class="fa-solid fa-magnifying-glass"></i><p>No installations match. Try another spelling, or clear the state filter.</p></div>`; return; }
+  for (const b of list) {
+    const on = P.selectedBases.includes(b.key);
+    const nSel = b.rows.filter(r => P.lines[r.id]).length;
+    const years = [...b.years];
+    const old = years.length && years.every(y => +y < (S.currentYear || 2025));
+    const row = document.createElement('label');
+    row.className = 'base-row' + (on ? ' is-on' : '');
+    row.innerHTML = `<input type="checkbox" ${on ? 'checked' : ''} aria-label="Select ${esc(b.base)}">
+      <div style="min-width:0;flex:1">
+        <div class="name">${esc(b.base)}${b.aka ? ` <small>(${esc(b.aka)})</small>` : ''}</div>
+        <div class="meta">${esc(b.state)} · ${esc(b.branch)}${b.dma ? ' · ' + esc(b.dma) : ''} · ${b.rows.length} options${b.ad ? ' · pop ' + ((+b.ad) + (+b.dep || 0)).toLocaleString() : ''}</div>
+      </div>
+      <div class="badges">${nSel ? `<span class="badge badge-solid">${nSel}</span>` : ''}${old ? `<span class="badge badge-amber" title="Rate card older than 2025">${years.join('/')}</span>` : ''}</div>`;
+    row.querySelector('input').onchange = e => toggleBase(b.key, e.target.checked);
+    el.appendChild(row);
+  }
+}
+function toggleBase(key, on) {
+  const i = P.selectedBases.indexOf(key);
+  if (on && i < 0) P.selectedBases.push(key);
+  if (!on && i >= 0) { P.selectedBases.splice(i, 1); for (const r of BASES.get(key).rows) delete P.lines[r.id]; }
+  renderBases(); renderMedia(); renderSummary(); save();
+}
+
+/* =========================================================================
+   Rendering: media options
+   ========================================================================= */
+function renderCatFilter() {
+  const el = document.getElementById('catFilter'); el.innerHTML = '';
+  const mk = (label, on, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (on ? ' is-on' : ''); b.setAttribute('aria-pressed', on); b.textContent = label; b.onclick = fn; el.appendChild(b); };
+  mk('All categories', !UI.catFilter, () => { UI.catFilter = null; renderCatFilter(); renderMedia(); });
+  for (const c of CATS) mk(c, UI.catFilter === c, () => { UI.catFilter = UI.catFilter === c ? null : c; renderCatFilter(); renderMedia(); });
+}
+function baseSource(b) { const r = b.rows.find(x => x.box_source_url) || b.rows.find(x => x.box_folder_url) || {}; return { url: r.box_source_url || r.box_folder_url || '', file: r.box_source_file || '', folder: r.box_folder_url || '' }; }
+function sourceLink(b) { const s = baseSource(b); if (!s.url) return '<span class="badge badge-grey" title="No Box link on file yet">no Box source</span>'; return `<a class="link" href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.file || 'Open the installation folder in Box')}"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${s.file ? 'Rate card in Box' : 'Box folder'}</a>`; }
+function renderMedia() {
+  document.getElementById('catFilter').classList.toggle('hidden', UI.mode === 'pricing');
+  if (UI.mode === 'pricing') return renderPricingEditor();
+  document.getElementById('h-media').textContent = 'Media options';
+  document.getElementById('mediaTools').classList.remove('hidden');
+  const el = document.getElementById('mediaPanel'); el.innerHTML = '';
+  const bases = P.selectedBases.map(k => BASES.get(k)).filter(Boolean).sort((a, b) => a.state.localeCompare(b.state) || a.base.localeCompare(b.base));
+  const nLines = Object.keys(P.lines).length;
+  document.getElementById('selSummary').textContent = bases.length ? `${bases.length} installation${bases.length > 1 ? 's' : ''} · ${nLines} item${nLines === 1 ? '' : 's'} checked` : '';
+  updateTabBadges();
+  if (!bases.length) { el.innerHTML = `<div class="empty"><i class="fa-solid fa-location-dot"></i><p>No installations selected yet. Pick one or more on the Targets panel and their media options will appear here.</p><button type="button" class="btn btn-secondary" onclick="showTab('targets')"><i class="fa-solid fa-location-dot"></i>Go to targets</button></div>`; return; }
+  const internal = UI.showInternal;
+  for (const b of bases) {
+    const card = document.createElement('div'); card.className = 'subcard';
+    const pop = b.ad ? `Active duty ${(+b.ad).toLocaleString()}${b.dep ? ' · dependents ' + (+b.dep).toLocaleString() : ''}` : 'population n/a';
+    const years = [...b.years];
+    card.innerHTML = `<div class="subcard-head">
+        <h3>${esc(b.base)}</h3>
+        <span class="muted" style="font-size:var(--text-xs)">${esc(b.state)} · ${esc(b.branch)}${b.dma ? ' · ' + esc(b.dma) : ''} · ${pop}</span>
+        ${years.length ? `<span class="badge ${years.every(y => +y < (S.currentYear || 2025)) ? 'badge-amber' : 'badge-green'}" title="Rate card year on file">card ${years.join('/')}</span>` : '<span class="badge badge-grey" title="No rate card year recorded">year unverified</span>'}
+        ${sourceLink(b)}
+        <div class="subcard-actions"><button type="button" class="link" data-act="all">Check all digital + standard</button><button type="button" class="link link-muted" data-act="none">Uncheck all</button><button type="button" class="link link-danger" data-act="remove"><i class="fa-solid fa-xmark"></i> Remove</button></div>
+      </div>`;
+    card.querySelector('[data-act=remove]').onclick = () => toggleBase(b.key, false);
+    card.querySelector('[data-act=none]').onclick = () => { for (const r of b.rows) delete P.lines[r.id]; renderMedia(); renderSummary(); renderBases(); save(); };
+    card.querySelector('[data-act=all]').onclick = () => { for (const r of b.rows) if ((r.category === 'Digital' || r.category === 'Standard Media') && !P.lines[r.id] && TERMS.some(([t, k]) => r[k] > 0)) P.lines[r.id] = { qty: 1, prod: P.prodOn }; renderMedia(); renderSummary(); renderBases(); save(); };
+    let any = false;
+    for (const cat of CATS) {
+      if (UI.catFilter && UI.catFilter !== cat) continue;
+      let rows = b.rows.filter(r => r.category === cat);
+      if (UI.onlySelected) rows = rows.filter(r => P.lines[r.id]);
+      if (!rows.length) continue;
+      any = true;
+      const det = document.createElement('details'); det.className = 'cat'; det.open = cat === 'Digital' || cat === 'Standard Media' || rows.some(r => P.lines[r.id]);
+      det.innerHTML = `<summary><i class="fa-solid fa-chevron-right" aria-hidden="true"></i>${cat} <span class="count">${rows.length}</span></summary>`;
+      const wrap = document.createElement('div');
+      for (const r of rows) wrap.appendChild(renderLine(r, cat.split(' ')[0], internal));
+      det.appendChild(wrap); card.appendChild(det);
+    }
+    if (!any) { const e = document.createElement('div'); e.className = 'empty'; e.style.border = '0'; e.innerHTML = `<p>${UI.onlySelected ? 'Nothing checked at this installation yet.' : 'No options in this category at this installation.'}</p>`; card.appendChild(e); }
+    el.appendChild(card);
+  }
+}
+function renderLine(r, catKey, internal) {
+  const line = P.lines[r.id];
+  const on = !!line;
+  const pr = priceLine(r, line || {});
+  const avail = TERMS.filter(([t, k]) => r[k] != null && r[k] > 0);
+  const noPrice = !avail.length && !(line && (line.vendor != null || line.price != null));
+  const old = r.rate_card_year && +r.rate_card_year < (S.currentYear || 2025);
+  const div = document.createElement('div');
+  div.className = `row cat-${catKey} ${on ? 'is-on' : ''}`;
+  div.innerHTML = `
+    <div class="row-main">
+      <input type="checkbox" ${on ? 'checked' : ''} aria-label="Propose ${esc(r.media_type)} at ${esc(r.base)}">
+      <div class="row-body">
+        <div class="row-title">
+          <span class="t">${esc(r.media_type)}</span>
+          ${r.ad_unit_size ? `<span class="badge badge-grey">${esc(r.ad_unit_size)}</span>` : ''}
+          ${r.min_term_months > 1 ? `<span class="badge badge-blue">${r.min_term_months}-mo min</span>` : ''}
+          ${pr.screens ? `<span class="badge badge-grey" title="Screen count from the rate card description">${pr.screens} screens</span>` : ''}
+          ${noPrice ? '<span class="badge badge-grey">inquire</span>' : ''}
+          ${old ? `<span class="badge badge-amber">reconfirm ${r.rate_card_year}</span>` : ''}
+          ${r.vendor_production > 0 ? `<span class="badge badge-green" title="Production quoted on rate card">prod ${fmt$(clientFromVendor(r.vendor_production))}</span>` : ''}
+        </div>
+        <div class="row-desc">${esc(r.description || '')}${r.notes ? ` <span class="note">· ${esc(r.notes)}</span>` : ''}</div>
+        ${internal ? `<div class="row-vendor num">Vendor: ${avail.map(([t, k]) => `${t} mo ${fmt$(r[k])}`).join(' · ') || 'n/a'}${r.vendor_production > 0 ? ' · prod ' + fmt$(r.vendor_production) : ''}</div>` : ''}
+      </div>
+      <div class="row-price num">
+        <div class="p ${pr.clientUnit == null ? 'muted' : ''}">${pr.media == null ? (noPrice ? 'Inquire' : '—') : fmt$(pr.media)}</div>
+        <div class="b">${esc(pr.basis)}${pr.qty > 1 ? ' × ' + pr.qty : ''}</div>
+        ${internal && pr.vendorExt != null ? `<div class="b">cost ${fmt$(pr.vendorExt)} · profit ${fmt$(pr.media - pr.vendorExt)}</div>` : ''}
+      </div>
+    </div>
+    ${on ? `<div class="row-edit">
+      <label class="field field-mini"><span>Qty</span><input type="number" min="1" step="1" value="${pr.qty}" data-f="qty" class="input input-sm input-num" inputmode="numeric"></label>
+      <label class="field field-mini"><span>Term</span><select data-f="term" class="select input-sm"><option value="">Auto</option>${avail.map(([t]) => `<option value="${t}" ${line.term == t ? 'selected' : ''}>${t} mo</option>`).join('')}</select></label>
+      <label class="check"><input type="checkbox" data-f="prod" ${line.prod ? 'checked' : ''}><span>Production${line.prod && pr.prodClient ? ` <b>${fmt$(pr.prodClient)}</b> <span class="muted">(${esc(pr.prodLabel)})</span>` : line.prod ? ' <span style="color:var(--amber-700)">inquire</span>' : ''}</span></label>
+      ${internal ? `<label class="field field-money"><span>Vendor $</span><input type="number" step="1" min="0" placeholder="auto" value="${line.vendor ?? ''}" data-f="vendor" class="input input-sm input-num" inputmode="numeric" title="Override vendor cost for the flight, per unit"></label>` : ''}
+      <label class="field field-money"><span>Client $</span><input type="number" step="1" min="0" placeholder="auto" value="${line.price ?? ''}" data-f="price" class="input input-sm input-num" inputmode="numeric" title="Override client price for the flight, per unit"></label>
+      <label class="field field-wide"><span>Note for export</span><input type="text" value="${esc(line.note || '')}" data-f="note" class="input input-sm"></label>
+    </div>` : ''}`;
+  div.querySelector('.row-main > input').onchange = e => {
+    if (e.target.checked) P.lines[r.id] = { qty: 1, prod: P.prodOn }; else delete P.lines[r.id];
+    renderMedia(); renderSummary(); renderBases(); save();
+  };
+  div.querySelectorAll('[data-f]').forEach(inp => {
+    const f = inp.dataset.f;
+    inp.addEventListener('change', () => {
+      const l = P.lines[r.id]; if (!l) return;
+      if (f === 'qty') l.qty = Math.max(1, parseInt(inp.value) || 1);
+      else if (f === 'term') l.term = inp.value ? +inp.value : null;
+      else if (f === 'prod') l.prod = inp.checked;
+      else if (f === 'vendor') l.vendor = inp.value === '' ? null : Math.max(0, +inp.value);
+      else if (f === 'price') l.price = inp.value === '' ? null : Math.max(0, +inp.value);
+      else if (f === 'note') l.note = inp.value;
+      renderMedia(); renderSummary(); save();
+    });
+  });
+  return div;
+}
+
+/* =========================================================================
+   Proposal model
+   ========================================================================= */
+function buildPlan() {
+  const items = [];
+  for (const [id, line] of Object.entries(P.lines)) {
+    const r = ROWS.find(x => x.id === id); if (!r) continue;
+    const b = BASES.get(r.baseKey);
+    items.push(Object.assign({ r, b, line, col: planColumn(r) }, priceLine(r, line)));
+  }
+  items.sort((a, b) => a.b.state.localeCompare(b.b.state) || a.b.base.localeCompare(b.b.base) || CATS.indexOf(a.r.category) - CATS.indexOf(b.r.category));
+  const byBase = new Map();
+  for (const it of items) {
+    let g = byBase.get(it.b.key); if (!g) { g = { b: it.b, items: [], media: 0, vendor: 0, prodClient: 0, prodCost: 0, inquire: 0 }; byBase.set(it.b.key, g); }
+    g.items.push(it);
+    if (it.media != null) { g.media += it.media; g.vendor += it.vendorExt || 0; } else g.inquire++;
+    g.prodClient += it.prodClient || 0; g.prodCost += it.prodCost || 0;
+  }
+  const tot = { media: 0, vendor: 0, prodClient: 0, prodCost: 0, inquire: 0 };
+  for (const g of byBase.values()) { tot.media += g.media; tot.vendor += g.vendor; tot.prodClient += g.prodClient; tot.prodCost += g.prodCost; tot.inquire += g.inquire; }
+  tot.client = tot.media + tot.prodClient; tot.cost = tot.vendor + tot.prodCost; tot.profit = tot.client - tot.cost; tot.marginPct = tot.client ? tot.profit / tot.client : 0;
+  const cols = [...new Set(items.map(i => i.col))];
+  const colOrder = ['Digital Monitor Network','Digital Kiosk Network','Bowling Monitors','Digital Marquee','Digital Billboard','Movie Theater','Banner','Vertical / Pop-Up Banner','Poster','Table Tents','Golf Course','Standard Media - Other','Large Format Banner','Counter Wrap','Wall / Window Cling','Publication Ad','Web / Email / Social','Sponsorship / Other'];
+  cols.sort((a, b) => colOrder.indexOf(a) - colOrder.indexOf(b));
+  return { items, byBase, tot, cols };
+}
+function renderSummary() {
+  const el = document.getElementById('summary');
+  const plan = buildPlan();
+  const internal = UI.showInternal;
+  const none = !plan.items.length;
+  document.getElementById('exportClient').disabled = document.getElementById('exportInternal').disabled = none;
+  updateTabBadges();
+  if (none) { el.innerHTML = `<div class="empty"><i class="fa-solid fa-list-check"></i><p>Check media options and the proposal totals will build here.</p></div>`; return; }
+  let html = `<div class="panel-title" style="margin-top:0"><span>${P.months}-month media investment</span></div><div class="summary-wrap"><table class="summary-table"><tbody>`;
+  for (const g of plan.byBase.values()) {
+    html += `<tr><td><div style="font-weight:600">${esc(g.b.base)}</div><div class="sub">${g.items.length} item${g.items.length > 1 ? 's' : ''}${g.inquire ? ` · ${g.inquire} inquire` : ''}${g.prodClient ? ` · prod ${fmt$(g.prodClient)}` : ''}</div></td><td class="num">${fmt$(g.media + g.prodClient)}</td></tr>`;
+  }
+  html += `<tr class="total"><td>Total investment${plan.tot.inquire ? ' <span style="font-weight:400;opacity:.75">+ items to inquire</span>' : ''}</td><td class="num">${fmt$(plan.tot.client)}</td></tr>`;
+  if (internal) html += `<tr class="internal"><td>Vendor cost (media${plan.tot.prodCost ? ' + production' : ''})</td><td class="num">${fmt$(plan.tot.cost)}</td></tr>
+    <tr class="internal"><td>Profit · margin</td><td class="num profit">${fmt$(plan.tot.profit)} · ${(plan.tot.marginPct * 100).toFixed(0)}%</td></tr>`;
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+function updateTabBadges() {
+  const t = document.getElementById('tabBadgeTargets'), m = document.getElementById('tabBadgeMedia');
+  const nb = P.selectedBases.length, nl = Object.keys(P.lines).length;
+  t.classList.toggle('hidden', !nb); t.textContent = nb; m.classList.toggle('hidden', !nl); m.textContent = nl;
+}
+
+/* =========================================================================
+   Excel export (ExcelJS)
+   ========================================================================= */
+const XL = { navy: 'FF1F2A44', blue: 'FF0092E4', light: 'FFEEF7FD', band: 'FFF8FAFC', grey: 'FF6B7280', white: 'FFFFFFFF', money: '"$"#,##0;[Red]-"$"#,##0;"-"' };
+const thin = { style: 'thin', color: { argb: 'FFD1D5DB' } };
+const boxB = { top: thin, left: thin, bottom: thin, right: thin };
+async function logoBase64() {
+  try { const res = await fetch('assets/wilkins-logo.png'); const blob = await res.blob(); return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result.split(',')[1]); fr.readAsDataURL(blob); }); } catch (e) { return null; }
+}
+function hdrCell(c, fill = XL.navy) { c.font = { bold: true, color: { argb: XL.white }, size: 10 }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }; c.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' }; c.border = boxB; }
+function bodyCell(c, opts = {}) { c.border = boxB; c.alignment = Object.assign({ vertical: 'middle', wrapText: !!opts.wrap, horizontal: opts.h || 'left' }, opts.align || {}); if (opts.money) { c.numFmt = XL.money; c.alignment.horizontal = 'right'; } if (opts.int) { c.numFmt = '#,##0'; c.alignment.horizontal = 'right'; } if (opts.bold) c.font = Object.assign({}, c.font, { bold: true }); if (opts.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.fill } }; }
+function requireLibs() { if (typeof ExcelJS === 'undefined') throw new Error('The Excel library did not load. Check your internet connection and reload the page.'); }
+
+async function exportExcel(internal) {
+  requireLibs();
+  const plan = buildPlan();
+  if (!plan.items.length) return;
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Wilkins Media - Military Proposal Builder'; wb.created = new Date();
+  const months = +P.months;
+  const showScreens = P.showScreens, showPop = P.showPop;
+  const client = P.client.trim();
+  const logo = await logoBase64();
+  const imgId = logo ? wb.addImage({ base64: logo, extension: 'png' }) : null;
+
+  const ws = wb.addWorksheet('Media Plan', { views: [{ showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+  const fixed = ['State', 'Base', 'Branch of Service', 'DMA'];
+  if (showPop) fixed.push('Base Population');
+  const perCol = showScreens ? 2 : 1;
+  const nMedia = plan.cols.length * perCol;
+  const firstMedia = fixed.length + 1;
+  const totalCol = firstMedia + nMedia;
+  let vendorStart = null;
+  if (internal) vendorStart = totalCol + 2;
+
+  ws.getRow(1).height = 34; ws.getRow(2).height = 8;
+  if (imgId != null) ws.addImage(imgId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 150, height: 33 } });
+  ws.getCell('A3').value = 'Military Media Plan'; ws.getCell('A3').font = { bold: true, size: 18, color: { argb: XL.navy } };
+  ws.getCell('A4').value = `Prepared for ${client}`; ws.getCell('A4').font = { size: 11, color: { argb: XL.grey } };
+  ws.getCell('A5').value = `${P.preparedBy ? 'Prepared by ' + P.preparedBy + ' · ' : ''}${new Date(P.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}${internal ? ' · INTERNAL - DO NOT SEND' : ''}`; ws.getCell('A5').font = { size: 10, color: { argb: internal ? 'FFB91C1C' : XL.grey }, bold: internal };
+
+  const R0 = 7, R1 = 8;
+  ws.mergeCells(R0, firstMedia, R0, totalCol); const g = ws.getCell(R0, firstMedia); g.value = `${months}-Month Media Investment`; hdrCell(g, XL.blue);
+  if (internal) { ws.mergeCells(R0, vendorStart, R0, vendorStart + nMedia + 2); const g2 = ws.getCell(R0, vendorStart); g2.value = `${months}-Month Vendor Cost (Media)`; hdrCell(g2, XL.grey); }
+  fixed.forEach((h, i) => { ws.mergeCells(R0, i + 1, R1, i + 1); const c = ws.getCell(R0, i + 1); c.value = h; hdrCell(c); hdrCell(ws.getCell(R1, i + 1)); });
+  plan.cols.forEach((col, i) => {
+    const c = ws.getCell(R1, firstMedia + i * perCol); c.value = `${col} Investment`; hdrCell(c);
+    if (showScreens) { const c2 = ws.getCell(R1, firstMedia + i * perCol + 1); c2.value = '# Units / Screens'; hdrCell(c2); }
+    if (internal) { const v = ws.getCell(R1, vendorStart + i * perCol); v.value = col; hdrCell(v, XL.grey); if (showScreens) { const v2 = ws.getCell(R1, vendorStart + i * perCol + 1); v2.value = '# Units'; hdrCell(v2, XL.grey); } }
+  });
+  const tc = ws.getCell(R1, totalCol); tc.value = 'Total Investment'; hdrCell(tc, XL.blue);
+  if (internal) { const a = ws.getCell(R1, vendorStart + nMedia); a.value = 'Total Vendor Cost'; hdrCell(a, XL.grey); const b = ws.getCell(R1, vendorStart + nMedia + 1); b.value = 'Profit'; hdrCell(b, XL.grey); const m = ws.getCell(R1, vendorStart + nMedia + 2); m.value = 'Margin %'; hdrCell(m, XL.grey); }
+  ws.getRow(R0).height = 22; ws.getRow(R1).height = 44;
+
+  let r = R1 + 1; const firstData = r;
+  for (const gB of plan.byBase.values()) {
+    const b = gB.b;
+    const vals = [b.state, b.base, b.branch, b.dma];
+    if (showPop) vals.push(b.ad ? (+b.ad) + (+b.dep || 0) : '');
+    vals.forEach((v, i) => { const c = ws.getCell(r, i + 1); c.value = v; bodyCell(c, { wrap: i === 1 || i === 3, int: i === 4 }); });
+    let rowClient = 0, rowVendor = 0;
+    plan.cols.forEach((col, i) => {
+      const its = gB.items.filter(it => it.col === col);
+      const inv = its.reduce((s, it) => s + (it.media || 0), 0);
+      const ven = its.reduce((s, it) => s + (it.vendorExt || 0), 0);
+      const units = its.reduce((s, it) => s + it.units, 0);
+      const anyInq = its.some(it => it.media == null);
+      const c = ws.getCell(r, firstMedia + i * perCol); c.value = its.length ? (inv || (anyInq ? 'Inquire' : 0)) : 0; bodyCell(c, { money: typeof c.value === 'number' });
+      if (showScreens) { const u = ws.getCell(r, firstMedia + i * perCol + 1); u.value = its.length ? units : 0; bodyCell(u, { int: true }); }
+      if (internal) { const v = ws.getCell(r, vendorStart + i * perCol); v.value = its.length ? ven : 0; bodyCell(v, { money: true, fill: XL.band }); if (showScreens) { const u2 = ws.getCell(r, vendorStart + i * perCol + 1); u2.value = its.length ? units : 0; bodyCell(u2, { int: true, fill: XL.band }); } }
+      rowClient += inv; rowVendor += ven;
+    });
+    const t = ws.getCell(r, totalCol); t.value = rowClient; bodyCell(t, { money: true, bold: true, fill: XL.light });
+    if (internal) {
+      const v = ws.getCell(r, vendorStart + nMedia); v.value = rowVendor; bodyCell(v, { money: true, fill: XL.band });
+      const p = ws.getCell(r, vendorStart + nMedia + 1); p.value = rowClient - rowVendor; bodyCell(p, { money: true, fill: XL.band, bold: true });
+      const m = ws.getCell(r, vendorStart + nMedia + 2); m.value = rowClient ? (rowClient - rowVendor) / rowClient : 0; bodyCell(m, { fill: XL.band }); m.numFmt = '0%'; m.alignment.horizontal = 'right';
+    }
+    ws.getRow(r).height = 30; r++;
+  }
+  const L = n => ws.getColumn(n).letter;
+  const tr = r;
+  ws.getCell(tr, 1).value = 'TOTAL'; ws.mergeCells(tr, 1, tr, fixed.length); hdrCell(ws.getCell(tr, 1));
+  for (let c = firstMedia; c <= totalCol; c++) { const cell = ws.getCell(tr, c); cell.value = { formula: `SUM(${L(c)}${firstData}:${L(c)}${tr - 1})` }; hdrCell(cell); cell.numFmt = (showScreens && (c - firstMedia) % 2 === 1 && c !== totalCol) ? '#,##0' : XL.money; cell.alignment.horizontal = 'right'; }
+  if (internal) {
+    for (let c = vendorStart; c <= vendorStart + nMedia + 1; c++) { const cell = ws.getCell(tr, c); cell.value = { formula: `SUM(${L(c)}${firstData}:${L(c)}${tr - 1})` }; hdrCell(cell, XL.grey); cell.numFmt = (showScreens && (c - vendorStart) % 2 === 1 && c < vendorStart + nMedia) ? '#,##0' : XL.money; cell.alignment.horizontal = 'right'; }
+    const m = ws.getCell(tr, vendorStart + nMedia + 2); m.value = { formula: `IF(${L(totalCol)}${tr}=0,0,${L(vendorStart + nMedia + 1)}${tr}/${L(totalCol)}${tr})` }; hdrCell(m, XL.grey); m.numFmt = '0%';
+  }
+  ws.getRow(tr).height = 22;
+
+  r = tr + 2;
+  const notes = [`Note: Rates based on a ${months}-month flight.`, 'All advertising subject to military base approval.', 'All military contracts are non-cancellable.', 'Production is not included unless listed below; sizes vary by installation as will cost.'];
+  if (plan.tot.inquire) notes.push('Items marked "Inquire" are available at the installation; pricing to be confirmed.');
+  for (const n of notes) { const c = ws.getCell(r, 1); c.value = n; c.font = { italic: true, size: 10, color: { argb: XL.grey } }; r++; }
+  const prodItems = plan.items.filter(it => it.line.prod && it.prodClient);
+  const anyStd = plan.items.some(it => it.r.category === 'Standard Media');
+  r++;
+  if (prodItems.length) {
+    ws.getCell(r, 1).value = 'Production (included above per item):'; ws.getCell(r, 1).font = { bold: true, size: 10, color: { argb: XL.navy } }; r++;
+    for (const gB of plan.byBase.values()) { const pc = gB.items.reduce((s, it) => s + (it.prodClient || 0), 0); if (pc) { ws.getCell(r, 1).value = gB.b.base; ws.getCell(r, 2).value = gB.items.filter(it => it.prodClient).map(it => `${it.r.media_type} (${it.prodLabel})`).join(', '); ws.getCell(r, 3).value = pc; ws.getCell(r, 3).numFmt = XL.money; r++; } }
+    r++;
+  }
+  if (anyStd) {
+    ws.getCell(r, 1).value = 'Production Pricing (Based on Quantity of 1)'; ws.getCell(r, 1).font = { bold: true, size: 10, color: { argb: XL.navy } }; r++;
+    ws.getCell(r, 1).value = 'Poster 22"W x 28"H'; ws.getCell(r, 2).value = +P.prodPoster; ws.getCell(r, 2).numFmt = XL.money; r++;
+    ws.getCell(r, 1).value = 'Indoor Banner 6\'W x 3\'H'; ws.getCell(r, 2).value = +P.prodBanner; ws.getCell(r, 2).numFmt = XL.money; r++;
+    ws.getCell(r, 1).value = 'Other sizes vary by installation - please inquire for specific details.'; ws.getCell(r, 1).font = { italic: true, size: 10, color: { argb: XL.grey } }; r++;
+  }
+  for (let c = 1; c <= (internal ? vendorStart + nMedia + 2 : totalCol); c++) ws.getColumn(c).width = 20;
+  if (showScreens) plan.cols.forEach((col, i) => { ws.getColumn(firstMedia + i * perCol + 1).width = 11; if (internal) ws.getColumn(vendorStart + i * perCol + 1).width = 11; });
+  ws.getColumn(2).width = 28; if (showPop) ws.getColumn(5).width = 14;
+  if (internal) ws.getColumn(totalCol + 1).width = 3;
+  ws.views = [{ showGridLines: false, state: 'frozen', xSplit: 2, ySplit: R1 }];
+
+  const wd = wb.addWorksheet('Line Item Detail', { views: [{ showGridLines: false, state: 'frozen', ySplit: 1 }] });
+  const heads = ['State', 'Base', 'Branch', 'Category', 'Media', 'Ad Unit Size', 'Description', 'Qty (Units / Screens)', 'Pricing Basis', 'Media Investment', 'Production', 'Line Total', 'Notes'];
+  if (internal) heads.push('Vendor Media Cost', 'Vendor Production', 'Profit', 'Margin %', 'Rate Card Year', 'Rate Card Notes', 'Review Flag', 'Source (Box)');
+  heads.forEach((h, i) => { const c = wd.getCell(1, i + 1); c.value = h; hdrCell(c); });
+  wd.getRow(1).height = 30;
+  let rr = 2;
+  for (const it of plan.items) {
+    const total = (it.media || 0) + (it.prodClient || 0);
+    const vals = [it.b.state, it.b.base, it.b.branch, it.r.category, it.r.media_type, it.r.ad_unit_size || '', it.r.description || '', it.units, it.basis, it.media == null ? 'Inquire' : it.media, it.line.prod ? (it.prodClient || 'Inquire') : '', it.media == null ? 'Inquire' : total, [it.line.note, it.minTerm ? `${it.minTerm}-month minimum` : '', it.manualPrice ? 'client price entered manually' : ''].filter(Boolean).join('; ')];
+    if (internal) vals.push(it.vendorExt ?? '', it.line.prod ? (it.prodCost || '') : '', it.media == null ? '' : total - (it.vendorExt || 0) - (it.prodCost || 0), it.media ? (total - (it.vendorExt || 0) - (it.prodCost || 0)) / total : '', it.r.rate_card_year || '', it.r.notes || '', it.r.review || '', (it.r.box_source_url || it.r.box_folder_url) ? { text: it.r.box_source_file || 'Open in Box', hyperlink: it.r.box_source_url || it.r.box_folder_url } : '');
+    vals.forEach((v, i) => { const c = wd.getCell(rr, i + 1); c.value = v; const money = [9, 10, 11, 13, 14, 15].includes(i) && typeof v === 'number'; bodyCell(c, { wrap: [6, 8, 12, 18, 19].includes(i), money, int: i === 7 }); if (i === 16 && typeof v === 'number') { c.numFmt = '0%'; c.alignment.horizontal = 'right'; } });
+    rr++;
+  }
+  [8, 30, 12, 18, 26, 16, 50, 6, 26, 16, 14, 16, 30, 16, 14, 14, 10, 10, 30, 30, 34].forEach((w, i) => wd.getColumn(i + 1).width = w);
+
+  if (internal) {
+    const st = wb.addWorksheet('Pricing Settings', { views: [{ showGridLines: false }] });
+    const rows = [
+      ['Client', client], ['Flight length (months)', months], ['Pricing method', P.method === 'monthly' ? 'Monthly vendor rate × months (house standard)' : 'Rate-card term price where available'],
+      ['Markup applied', P.marginOn ? 'Yes' : 'No'], ['Margin', P.marginOn ? `${P.marginPct}% ${P.marginMode === 'margin' ? 'margin on price (vendor ÷ (1 − m))' : 'markup on cost (vendor × (1 + m))'}` : 'n/a'],
+      ['Rounding', P.marginOn ? (+P.roundTo ? `nearest $${P.roundTo}` : 'none') : 'n/a'], ['Standard production', `Poster ${fmt$(P.prodPoster)} · Banner ${fmt$(P.prodBanner)} (client)`],
+      ['Rate card data', `${RC.source} · generated ${RC.generated}`], ['Exported', new Date().toLocaleString()],
+    ];
+    rows.forEach((kv, i) => { st.getCell(i + 1, 1).value = kv[0]; st.getCell(i + 1, 1).font = { bold: true }; st.getCell(i + 1, 2).value = kv[1]; });
+    st.getColumn(1).width = 26; st.getColumn(2).width = 80;
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  const safe = client.replace(/[^\w\- ]+/g, '').trim() || 'Client';
+  const d = new Date(P.date + 'T12:00:00'); const stamp = `${d.getMonth() + 1}.${d.getDate()}.${String(d.getFullYear()).slice(2)}`;
+  const name = `${safe} ${d.getFullYear()} Military Proposal ${internal ? 'INTERNAL' : stamp}.xlsx`;
+  downloadBlob(buf, name, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  return name;
+}
+function downloadBlob(buf, name, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+
+/* =========================================================================
+   Load rate card from the MASTER .xlsx (or CSV)
+   ========================================================================= */
+async function loadRateCardFile(file) {
+  if (typeof XLSX === 'undefined') throw new Error('The spreadsheet library did not load. Check your internet connection and reload the page.');
+  const buf = await file.arrayBuffer();
+  const wbk = XLSX.read(buf, { type: 'array' });
+  const sheet = wbk.Sheets['Rate Card'] || wbk.Sheets[wbk.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  // hyperlink cells show 'Open in Box' as text; swap in the actual link
+  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1'); const hdrRow = {}; for (let c = range.s.c; c <= range.e.c; c++) { const cell = sheet[XLSX.utils.encode_cell({ r: 0, c })]; if (cell) hdrRow[c] = String(cell.v); }
+  json.forEach((o, i) => { for (const [c, h] of Object.entries(hdrRow)) { const cell = sheet[XLSX.utils.encode_cell({ r: i + 1, c: +c })]; if (cell && cell.l && cell.l.Target) o[h] = cell.l.Target; } });
+  const H = {};
+  const want = { id: /^id$/i, base: /^base$/i, aka: /also known/i, state: /^state/i, dma: /dma/i, zip: /^zip/i, branch: /^branch/i, category: /^category/i, media_type: /media type/i, ad_unit_size: /ad unit size/i, description: /^description/i, min_term_months: /min term/i, vendor_1mo: /vendor cost 1 month/i, vendor_3mo: /vendor cost 3 month/i, vendor_6mo: /vendor cost 6 month/i, vendor_12mo: /vendor cost 12 month/i, vendor_production: /vendor production/i, active_duty: /active duty/i, dependents: /dependents/i, rate_card_year: /rate card year/i, last_updated: /last updated/i, notes: /^notes/i, review: /review/i, box_source_file: /rate card file in box|box source file/i, box_source_url: /link to rate card|box source url/i, box_folder_url: /box folder/i };
+  const keys = Object.keys(json[0] || {});
+  for (const [k, rx] of Object.entries(want)) { const hit = keys.find(h => rx.test(h.trim())) || keys.find(h => h.trim().toLowerCase() === k); if (hit) H[k] = hit; }
+  if (!H.base || !H.media_type) throw new Error('That file has no "Base" and "Media Type" columns. Load the MASTER rate card workbook (Rate Card tab).');
+  const rows = json.map((o, i) => {
+    const r = {};
+    for (const k of Object.keys(want)) { let v = H[k] != null ? o[H[k]] : ''; if (typeof v === 'string') v = v.trim(); if (k.startsWith('vendor_') || k === 'active_duty' || k === 'dependents' || k === 'min_term_months') { v = (v === '' || isNaN(+v)) ? null : +v; } if (v != null && v !== '') r[k] = v; }
+    if (!r.id) r.id = `${r.state || 'XX'}-${(r.base || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8)}-${String(i + 1).padStart(3, '0')}`;
+    if (!r.category || !CATS.includes(r.category)) r.category = 'Sponsorship & Other';
+    if (r.min_term_months == null) { const t = TERMS.find(([t, k]) => r[k] > 0); r.min_term_months = t ? t[0] : null; }
+    return r;
+  }).filter(r => r.base && r.media_type);
+  if (!rows.length) throw new Error('No rows with a base and media type were found in that file.');
+  const settings = Object.assign({}, S);
+  if (wbk.Sheets['Settings']) { const sj = XLSX.utils.sheet_to_json(wbk.Sheets['Settings'], { header: 1 }); for (const row of sj) { const k = String(row[0] || '').toLowerCase(), v = row[1]; if (/standard margin/.test(k) && !isNaN(+v)) settings.margin = +v; if (/round client/.test(k) && !isNaN(+v)) settings.roundTo = +v; if (/production - poster/.test(k) && !isNaN(+v)) settings.prodPosterClient = +v; if (/production - banner/.test(k) && !isNaN(+v)) settings.prodBannerClient = +v; if (/printer cost - poster/.test(k) && !isNaN(+v)) settings.prodPosterCost = +v; if (/printer cost - banner/.test(k) && !isNaN(+v)) settings.prodBannerCost = +v; if (/default campaign/.test(k) && !isNaN(+v)) settings.defaultMonths = +v; if (/considered current/.test(k) && !isNaN(+v)) settings.currentYear = +v; } }
+  let changes = [];
+  if (wbk.Sheets['Change Log']) { const cj = XLSX.utils.sheet_to_json(wbk.Sheets['Change Log'], { defval: '' }); changes = cj.filter(c => c.Base || c.base).map(c => ({ date: String(c.Date || c.date || ''), by: c.By || '', base: c.Base || c.base, media: c['Media option'] || '', field: c['What changed'] || '', from: c.From ?? '', to: c.To ?? '' })); }
+  RC = { rows, settings, source: file.name, generated: new Date(file.lastModified).toISOString().slice(0, 10), changes };
+  Object.assign(S, settings);
+  saveRC();
+  indexData();
+  P.selectedBases = P.selectedBases.filter(k => BASES.has(k));
+  for (const id of Object.keys(P.lines)) if (!ROWS.find(r => r.id === id)) delete P.lines[id];
+  renderAll();
+  return rows.length;
+}
+
+/* =========================================================================
+   Update pricing
+   ========================================================================= */
+const FIELD_LABELS = { vendor_1mo: '1 month', vendor_3mo: '3 months', vendor_6mo: '6 months', vendor_12mo: '12 months', vendor_production: 'production', rate_card_year: 'rate card year', media_type: 'media type', ad_unit_size: 'size', description: 'description', notes: 'notes', category: 'category' };
+function newRowId(b) { const code = b.base.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8); let n = b.rows.length + 1, id; do { id = `${b.state || 'XX'}-${code}-${String(n++).padStart(3, '0')}`; } while (ROWS.some(r => r.id === id)); return id; }
+
+function renderPricingEditor() {
+  document.getElementById('h-media').textContent = 'Update pricing';
+  document.getElementById('mediaTools').classList.add('hidden');
+  document.getElementById('selSummary').textContent = '';
+  const el = document.getElementById('mediaPanel'); el.innerHTML = '';
+  const intro = document.createElement('div'); intro.className = 'notice notice-info';
+  intro.innerHTML = `<h3><i class="fa-solid fa-circle-info" style="color:var(--blue-500)"></i> How to update a base's pricing (about 5 minutes)</h3>
+    <ol>
+      <li>Pick the installation on the Targets panel, or <button type="button" class="link" data-act="addbase">add a new installation</button>.</li>
+      <li>Type the <b>vendor cost</b> from the base's rate card: what the base charges us, before markup. Use the total for that term (3 months = total for 3 months). Leave a box empty if the base does not sell that term.</li>
+      <li>Set the <b>rate card year</b> so everyone knows how fresh the price is. Add a note if a price is per unit, per season, or has a minimum.</li>
+      <li>Click <b>Download rate card (Excel)</b> at the top and save it over the master in Box. Everyone else clicks <b>Load rate card</b> to pick up your changes.</li>
+    </ol>
+    <div class="muted" style="margin-top:var(--sp-2)">Edits save automatically in this browser as you type. Client prices are calculated from vendor cost; you never type a client price here.</div>`;
+  intro.querySelector('[data-act=addbase]').onclick = addInstallation;
+  el.appendChild(intro);
+  const bases = P.selectedBases.map(k => BASES.get(k)).filter(Boolean).sort((a, b) => a.state.localeCompare(b.state) || a.base.localeCompare(b.base));
+  if (!bases.length) { const d = document.createElement('div'); d.className = 'empty'; d.innerHTML = `<i class="fa-solid fa-pen-to-square"></i><p>Select an installation on the Targets panel to edit its pricing.</p><div style="display:flex;gap:var(--sp-2);flex-wrap:wrap;justify-content:center"><button type="button" class="btn btn-secondary" onclick="showTab('targets')"><i class="fa-solid fa-location-dot"></i>Go to targets</button><button type="button" class="btn btn-secondary" data-act="addbase"><i class="fa-solid fa-plus"></i>Add a new installation</button></div>`; d.querySelector('[data-act=addbase]').onclick = addInstallation; el.appendChild(d); return; }
+  for (const b of bases) el.appendChild(renderBaseEditor(b));
+}
+function renderBaseEditor(b) {
+  const card = document.createElement('div'); card.className = 'subcard';
+  const years = [...new Set(b.rows.map(r => r.rate_card_year).filter(Boolean))];
+  card.innerHTML = `<div class="subcard-head">
+      <h3>${esc(b.base)}</h3>
+      <span class="muted" style="font-size:var(--text-xs)">${esc(b.state)} · ${esc(b.branch)}${b.dma ? ' · ' + esc(b.dma) : ''}</span>
+      ${sourceLink(b)}
+      <div class="subcard-actions" style="align-items:center">
+        <label class="field" style="flex-direction:row;align-items:center;gap:var(--sp-2)"><span>Year for all rows</span><input type="number" min="2015" max="2035" placeholder="${new Date().getFullYear()}" value="${years.length === 1 ? years[0] : ''}" data-act="yearall" class="input input-sm input-num" style="width:84px" inputmode="numeric"></label>
+        <button type="button" class="btn btn-secondary btn-sm" data-act="addrow"><i class="fa-solid fa-plus"></i>Add option</button>
+      </div>
+    </div>
+    <div style="padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--grey-200);display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)" class="source-fields">
+      <label class="field"><span>Rate card file in Box (link)</span><input type="url" data-src="box_source_url" value="${esc(baseSource(b).url)}" placeholder="https://wilkinsmedia.app.box.com/file/…" class="input input-sm"></label>
+      <label class="field"><span>File name / what it is</span><input type="text" data-src="box_source_file" value="${esc(baseSource(b).file)}" placeholder="e.g. FY27 Advertising Guide.pdf" class="input input-sm"></label>
+    </div>
+    <div class="edit-wrap"><table class="edit-table">
+      <thead><tr><th>Media option</th><th>Category</th><th>Size</th><th class="v">Vendor 1 mo</th><th class="v">3 mo</th><th class="v">6 mo</th><th class="v">12 mo</th><th>Production</th><th>Year</th><th>Notes / description</th><th><span class="sr-only">Remove</span></th></tr></thead>
+      <tbody></tbody></table></div>
+    <div class="edit-cards"></div>`;
+  const tb = card.querySelector('tbody'), cards = card.querySelector('.edit-cards');
+  const sorted = [...b.rows].sort((x, y) => CATS.indexOf(x.category) - CATS.indexOf(y.category) || x.media_type.localeCompare(y.media_type));
+  for (const r of sorted) { tb.appendChild(renderEditRow(r, b, false)); cards.appendChild(renderEditRow(r, b, true)); }
+  card.querySelectorAll('[data-src]').forEach(inp => inp.addEventListener('change', () => {
+    const k = inp.dataset.src, v = inp.value.trim();
+    if (k === 'box_source_url' && v && !/^https?:\/\//i.test(v)) { inp.classList.add('is-invalid'); toast('Paste a full link starting with https://', 'error'); return; }
+    inp.classList.remove('is-invalid');
+    logChange(b.base, '(all options)', k === 'box_source_url' ? 'Box source link' : 'Box source file', baseSource(b)[k === 'box_source_url' ? 'url' : 'file'], v);
+    for (const r of b.rows) { if (v) r[k] = v; else delete r[k]; }
+    saveRC(); updateDirtyBar(); renderMedia(); toast('Box source updated for ' + b.base, 'success');
+  }));
+  card.querySelector('[data-act=addrow]').onclick = () => { const r = { id: newRowId(b), base: b.base, aka: b.aka, state: b.state, dma: b.dma, zip: b.zip, branch: b.branch, category: 'Digital', media_type: 'New option', description: '', rate_card_year: new Date().getFullYear(), min_term_months: null, box_source_url: baseSource(b).url || undefined, box_source_file: baseSource(b).file || undefined, box_folder_url: baseSource(b).folder || undefined }; r.baseKey = b.key; RC.rows.push(r); b.rows.push(r); logChange(b.base, r.media_type, 'added', '', ''); saveRC(); updateDirtyBar(); renderMedia(); toast('Option added. Fill in its name and vendor costs.', 'success'); };
+  card.querySelector('[data-act=yearall]').addEventListener('change', e => { const y = +e.target.value || null; if (y && (y < 2015 || y > 2035)) { toast('Enter a year between 2015 and 2035.', 'error'); return; } for (const r of b.rows) { if (r.rate_card_year !== y) { logChange(b.base, r.media_type, 'rate card year', r.rate_card_year, y); r.rate_card_year = y; } } saveRC(); updateDirtyBar(); renderMedia(); toast(`Rate card year set to ${y || 'blank'} for ${b.base}.`, 'success'); });
+  return card;
+}
+function renderEditRow(r, b, asCard) {
+  const numIn = (f) => `<input type="number" min="0" step="1" value="${r[f] ?? ''}" data-f="${f}" class="input input-sm input-num" inputmode="numeric" aria-label="${FIELD_LABELS[f] || f}">`;
+  const fields = {
+    media: `<input type="text" value="${esc(r.media_type)}" data-f="media_type" class="input input-sm" style="font-weight:600" aria-label="Media option">`,
+    cat: `<select data-f="category" class="select input-sm" aria-label="Category">${CATS.map(c => `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select>`,
+    size: `<input type="text" value="${esc(r.ad_unit_size || '')}" data-f="ad_unit_size" class="input input-sm" aria-label="Size">`,
+    v1: numIn('vendor_1mo'), v3: numIn('vendor_3mo'), v6: numIn('vendor_6mo'), v12: numIn('vendor_12mo'), prod: numIn('vendor_production'),
+    year: `<input type="number" min="2015" max="2035" value="${r.rate_card_year ?? ''}" data-f="rate_card_year" class="input input-sm input-num" inputmode="numeric" aria-label="Rate card year">`,
+    notes: `<input type="text" value="${esc(r.notes || '')}" data-f="notes" class="input input-sm" aria-label="Notes">`,
+    desc: `<input type="text" value="${esc(r.description || '')}" data-f="description" class="input input-sm" style="color:var(--grey-500)" aria-label="Description">`,
+    del: `<button type="button" data-act="del" class="btn btn-ghost-danger btn-sm" title="Remove this option" aria-label="Remove ${esc(r.media_type)}"><i class="fa-solid fa-trash"></i></button>`,
+  };
+  let el;
+  if (asCard) {
+    el = document.createElement('div'); el.className = 'edit-card';
+    el.innerHTML = `<label class="field span2"><span>Media option</span>${fields.media}</label><label class="field"><span>Category</span>${fields.cat}</label><label class="field"><span>Size</span>${fields.size}</label>
+      <label class="field"><span>Vendor 1 mo</span>${fields.v1}</label><label class="field"><span>3 mo</span>${fields.v3}</label><label class="field"><span>6 mo</span>${fields.v6}</label><label class="field"><span>12 mo</span>${fields.v12}</label>
+      <label class="field"><span>Production</span>${fields.prod}</label><label class="field"><span>Year</span>${fields.year}</label>
+      <label class="field span2"><span>Notes</span>${fields.notes}</label><label class="field span2"><span>Description</span>${fields.desc}</label><div class="span2" style="text-align:right">${fields.del}</div>`;
+  } else {
+    el = document.createElement('tr');
+    el.innerHTML = `<td style="min-width:150px">${fields.media}</td><td style="min-width:120px">${fields.cat}</td><td style="min-width:90px">${fields.size}</td><td class="v">${fields.v1}</td><td class="v">${fields.v3}</td><td class="v">${fields.v6}</td><td class="v">${fields.v12}</td><td>${fields.prod}</td><td>${fields.year}</td><td style="min-width:180px">${fields.notes}<div style="height:var(--sp-1)"></div>${fields.desc}</td><td>${fields.del}</td>`;
+  }
+  el.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('change', () => {
+    const f = inp.dataset.f; const isNum = inp.type === 'number';
+    if (isNum && inp.value !== '' && (+inp.value < 0 || isNaN(+inp.value))) { inp.classList.add('is-invalid'); toast('Enter a positive number.', 'error'); return; }
+    if (f === 'rate_card_year' && inp.value !== '' && (+inp.value < 2015 || +inp.value > 2035)) { inp.classList.add('is-invalid'); toast('Enter a year between 2015 and 2035.', 'error'); return; }
+    inp.classList.remove('is-invalid');
+    const v = isNum ? (inp.value === '' ? null : +inp.value) : inp.value.trim();
+    const before = r[f] ?? null;
+    if (before === v) return;
+    logChange(b.base, r.media_type, FIELD_LABELS[f] || f, before, v);
+    if (v == null || v === '') delete r[f]; else r[f] = v;
+    if (f.startsWith('vendor_') && f !== 'vendor_production') { const t = TERMS.find(([t, k]) => r[k] > 0); r.min_term_months = t ? t[0] : null; }
+    saveRC(); updateDirtyBar(); renderSummary();
+    inp.classList.add('flash'); setTimeout(() => inp.classList.remove('flash'), 900);
+  }));
+  el.querySelector('[data-act=del]').onclick = () => { if (!confirm(`Remove "${r.media_type}" from ${b.base}?`)) return; logChange(b.base, r.media_type, 'removed', '', ''); RC.rows = RC.rows.filter(x => x !== r); b.rows = b.rows.filter(x => x !== r); delete P.lines[r.id]; saveRC(); indexData(); renderMedia(); renderSummary(); toast('Option removed.', 'success'); };
+  return el;
+}
+function addInstallation() {
+  const base = (prompt('Installation name (for example Shaw AFB):') || '').trim(); if (!base) return;
+  const state = (prompt('State (2 letters):') || '').trim().toUpperCase().slice(0, 5);
+  const branch = (prompt('Branch of service (Army / Air Force / Navy / Marine Corps / Coast Guard / Joint Base):') || '').trim();
+  const dma = (prompt('DMA / metro area (optional):') || '').trim();
+  const key = (state || 'XX') + '|' + base;
+  if (!BASES.has(key)) { const r = { id: `${state || 'XX'}-${base.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8)}-001`, base, state, dma, branch, category: 'Digital', media_type: 'Digital Monitor Network', description: '', rate_card_year: new Date().getFullYear() }; RC.rows.push(r); logChange(base, '(new installation)', 'added', '', ''); saveRC(); indexData(); }
+  if (!P.selectedBases.includes(key)) P.selectedBases.push(key);
+  setMode('pricing'); showTab('media'); renderAll(); save(); toast(`${base} added. Enter its media options and vendor costs.`, 'success');
+}
+
+async function exportRateCard() {
+  requireLibs();
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Wilkins Media - Military Proposal Builder';
+  const logo = await logoBase64(); const imgId = logo ? wb.addImage({ base64: logo, extension: 'png' }) : null;
+  const today = new Date().toISOString().slice(0, 10);
+  const rm = wb.addWorksheet('Read Me', { views: [{ showGridLines: false }] });
+  if (imgId != null) rm.addImage(imgId, { tl: { col: 1, row: 1 }, ext: { width: 218, height: 48 } });
+  rm.getCell('B6').value = 'Wilkins Media - Military On-Base Advertising Rate Card (MASTER)'; rm.getCell('B6').font = { bold: true, size: 16, color: { argb: XL.navy } };
+  rm.getCell('B7').value = `Downloaded ${today}${whoAmI() ? ' by ' + whoAmI() : ''} from the Military Proposal Builder. ${(RC.changes || []).length} edits since the built-in data (see Change Log).`; rm.getCell('B7').font = { italic: true, color: { argb: XL.grey } };
+  [['How to use', 'Open the Military Proposal Builder and click "Load rate card" to use this file. To change prices, use "Update pricing" in the app and download again, or edit the Vendor Cost columns here and load the file.'],
+   ['Vendor cost', 'What the base charges Wilkins, before markup. Columns are totals for that term. Blank = the base does not sell that term.'],
+   ['Client price', 'Formula: vendor cost / (1 - margin), rounded (Settings tab). Standard military margin 50% = vendor x 2.'],
+   ['Production', 'Never included in media price. Standard: poster $100, banner $350; other sizes inquire.']].forEach((kv, i) => { rm.getCell(9 + i, 2).value = kv[0]; rm.getCell(9 + i, 2).font = { bold: true, color: { argb: XL.navy } }; rm.getCell(9 + i, 3).value = kv[1]; rm.getCell(9 + i, 3).alignment = { wrapText: true, vertical: 'top' }; rm.getRow(9 + i).height = 34; });
+  rm.getColumn(1).width = 3; rm.getColumn(2).width = 22; rm.getColumn(3).width = 100;
+  const st = wb.addWorksheet('Settings', { views: [{ showGridLines: false }] });
+  [['Setting', 'Value', 'Notes'],
+   ['Standard margin (share of client price kept by Wilkins)', S.margin ?? 0.5, 'Client price = vendor cost / (1 - margin). 50% = vendor x 2.'],
+   ['Round client prices to nearest', S.roundTo ?? 25, ''],
+   ['Standard production - Poster 22"W x 28"H (client price)', S.prodPosterClient ?? 100, ''],
+   ['Standard production - Banner 3\'H x 6\'W (client price)', S.prodBannerClient ?? 350, ''],
+   ['Est. printer cost - Poster', S.prodPosterCost ?? 50, ''], ['Est. printer cost - Banner 3x6', S.prodBannerCost ?? 96, ''],
+   ['Default campaign length (months)', S.defaultMonths ?? 3, ''], ['Standard pricing method', 'Monthly rate x months', ''],
+   ['Rate card year considered current', S.currentYear ?? 2025, 'Older cards should be reconfirmed with the base.']].forEach((row, i) => { row.forEach((v, j) => { const c = st.getCell(i + 1, j + 1); c.value = v; c.border = boxB; if (i === 0) hdrCell(c); if (i === 1 && j === 1) c.numFmt = '0%'; }); });
+  st.getColumn(1).width = 52; st.getColumn(2).width = 24; st.getColumn(3).width = 70;
+  const rc = wb.addWorksheet('Rate Card', { views: [{ state: 'frozen', xSplit: 2, ySplit: 1 }] });
+  const cols = [['id', 'ID', 18], ['base', 'Base', 30], ['aka', 'Also known as', 22], ['state', 'State', 8], ['dma', 'DMA / Metro', 24], ['zip', 'Zip', 8], ['branch', 'Branch', 14], ['category', 'Category', 18], ['media_type', 'Media Type', 28], ['ad_unit_size', 'Ad Unit Size', 18], ['description', 'Description', 50], ['min_term_months', 'Min Term (mo)', 10],
+    ['vendor_1mo', 'Vendor Cost 1 Month', 14], ['vendor_3mo', 'Vendor Cost 3 Months', 14], ['vendor_6mo', 'Vendor Cost 6 Months', 14], ['vendor_12mo', 'Vendor Cost 12 Months', 14], ['vendor_production', 'Vendor Production Cost', 14],
+    ['client_1mo', 'Client Price 1 Month', 14], ['client_3mo', 'Client Price 3 Months', 14], ['client_6mo', 'Client Price 6 Months', 14], ['client_12mo', 'Client Price 12 Months', 14], ['client_production', 'Client Production Price', 14],
+    ['active_duty', 'Active Duty (ref.)', 12], ['dependents', 'Dependents (ref.)', 12], ['rate_card_year', 'Rate Card Year', 10], ['last_updated', 'Last Updated', 12], ['notes', 'Notes', 40], ['review', 'Review Flag', 30], ['source', 'Source', 30], ['box_source_file', 'Rate card file in Box', 34], ['box_source_url', 'Link to rate card file', 26], ['box_folder_url', 'Box folder', 26]];
+  cols.forEach(([k, h, w], i) => { const c = rc.getCell(1, i + 1); c.value = h; hdrCell(c); rc.getColumn(i + 1).width = w; });
+  rc.getRow(1).height = 42;
+  const colIdx = Object.fromEntries(cols.map(([k], i) => [k, i + 1]));
+  const L = k => rc.getColumn(colIdx[k]).letter;
+  const rows = [...RC.rows].sort((a, b) => (a.state || '').localeCompare(b.state || '') || a.base.localeCompare(b.base) || CATS.indexOf(a.category) - CATS.indexOf(b.category) || a.media_type.localeCompare(b.media_type));
+  const changedKeys = new Set((RC.changes || []).map(c => c.base + '|' + c.media));
+  rows.forEach((r, i) => {
+    const ri = i + 2;
+    const review = []; if (!TERMS.some(([t, k]) => r[k] > 0)) review.push('No price on file - inquire'); if (r.rate_card_year && +r.rate_card_year < (S.currentYear || 2025)) review.push('Rate card older than 2025 - reconfirm');
+    cols.forEach(([k], j) => {
+      const c = rc.getCell(ri, j + 1); c.border = boxB; c.alignment = { vertical: 'top', wrapText: ['description', 'notes', 'review', 'media_type', 'base'].includes(k) };
+      if (k.startsWith('client_')) { const src = 'vendor_' + k.split('_')[1]; c.value = { formula: `IF(ISNUMBER(${L(src)}${ri}),ROUND(${L(src)}${ri}/(1-Settings!$B$2)/Settings!$B$3,0)*Settings!$B$3,"")` }; c.numFmt = XL.money; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.light } }; c.font = { bold: true, color: { argb: XL.navy } }; }
+      else if (k === 'review') { c.value = review.join('; '); if (review.length) c.font = { color: { argb: 'FFB45309' } }; }
+      else if (k === 'source') c.value = changedKeys.has(r.base + '|' + r.media_type) ? `Edited in app ${today}` : (r.source || RC.source || '');
+      else if (k === 'last_updated') c.value = changedKeys.has(r.base + '|' + r.media_type) ? today : (r.last_updated || '');
+      else if ((k === 'box_source_url' || k === 'box_folder_url') && r[k]) { c.value = { text: 'Open in Box', hyperlink: r[k] }; c.font = { color: { argb: XL.blue }, underline: true }; }
+      else { c.value = r[k] ?? ''; if (k.startsWith('vendor_') || k === 'active_duty' || k === 'dependents') { c.numFmt = k.startsWith('vendor_') ? XL.money : '#,##0'; c.alignment.horizontal = 'right'; } }
+    });
+  });
+  rc.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length + 1, column: cols.length } };
+  const bs = wb.addWorksheet('Bases', { views: [{ state: 'frozen', ySplit: 1 }] });
+  ['Base', 'Also known as', 'State', 'DMA / Metro', 'Branch', 'Media options', 'Active Duty (ref.)', 'Dependents (ref.)', 'Rate card year(s)'].forEach((h, i) => { const c = bs.getCell(1, i + 1); c.value = h; hdrCell(c); });
+  [...BASES.values()].sort((a, b) => a.state.localeCompare(b.state) || a.base.localeCompare(b.base)).forEach((b, i) => { [b.base, b.aka, b.state, b.dma, b.branch, b.rows.length, b.ad || '', b.dep || '', [...new Set(b.rows.map(r => r.rate_card_year).filter(Boolean))].join(', ')].forEach((v, j) => { const c = bs.getCell(i + 2, j + 1); c.value = v; c.border = boxB; }); });
+  [32, 26, 7, 26, 14, 10, 12, 12, 14].forEach((w, i) => bs.getColumn(i + 1).width = w);
+  const cl = wb.addWorksheet('Change Log');
+  ['Date', 'By', 'Base', 'Media option', 'What changed', 'From', 'To'].forEach((h, i) => { const c = cl.getCell(1, i + 1); c.value = h; hdrCell(c); });
+  (RC.changes || []).forEach((ch, i) => { [ch.date, ch.by || '', ch.base, ch.media, ch.field, ch.from, ch.to].forEach((v, j) => { cl.getCell(i + 2, j + 1).value = v; }); });
+  [12, 18, 30, 30, 20, 16, 16].forEach((w, i) => cl.getColumn(i + 1).width = w);
+  const buf = await wb.xlsx.writeBuffer();
+  downloadBlob(buf, `Wilkins Military Rate Card - MASTER ${today}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+/* =========================================================================
+   Persistence, validation, UI plumbing
+   ========================================================================= */
+const LS = 'wilkins-military-proposal-v1';
+function save() { try { localStorage.setItem(LS, JSON.stringify(P)); } catch (e) {} }
+function restore() { try { const s = localStorage.getItem(LS); if (s) P = Object.assign(defaultProposal(), JSON.parse(s)); } catch (e) {} }
+function toast(msg, kind = 'info') { const t = document.getElementById('toast'); t.className = 'toast show' + (kind === 'success' ? ' toast-success' : kind === 'error' ? ' toast-error' : ''); t.innerHTML = `<i class="fa-solid ${kind === 'success' ? 'fa-circle-check' : kind === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info'}"></i><span></span>`; t.querySelector('span').textContent = msg; clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), kind === 'error' ? 5000 : 2800); }
+function setError(id, msg) { const e = document.getElementById('err-' + id), inp = document.getElementById(id); if (e) e.textContent = msg || ''; if (inp) { inp.classList.toggle('is-invalid', !!msg); inp.setAttribute('aria-invalid', msg ? 'true' : 'false'); } }
+function validateProposal() {
+  let ok = true, first = null;
+  if (!P.client.trim()) { setError('clientName', 'Enter the client name; it goes on the proposal.'); ok = false; first = first || 'clientName'; } else setError('clientName', '');
+  if (!(P.months >= 1 && P.months <= 36)) { setError('months', 'Flight length must be between 1 and 36 months.'); ok = false; first = first || 'months'; } else setError('months', '');
+  if (P.marginOn && !(P.marginPct >= 0 && P.marginPct <= 90)) { setError('marginPct', 'Margin must be between 0 and 90%.'); ok = false; first = first || 'marginPct'; } else setError('marginPct', '');
+  if (!ok) { showTab('proposal'); document.getElementById(first).focus(); toast('Fix the highlighted field to export.', 'error'); }
+  return ok;
+}
+async function runExport(btnId, internal) {
+  if (!validateProposal()) return;
+  const btn = document.getElementById(btnId); const lbl = btn.querySelector('.lbl'); const orig = lbl.textContent;
+  btn.classList.add('is-busy'); btn.disabled = true; lbl.textContent = 'Exporting…';
+  try { const name = await exportExcel(internal); toast(`Exported ${name}`, 'success'); }
+  catch (e) { console.error(e); toast('Export failed: ' + e.message, 'error'); }
+  finally { btn.classList.remove('is-busy'); btn.disabled = false; lbl.textContent = orig; }
+}
+function bindSettings() {
+  const map = { clientName: 'client', preparedBy: 'preparedBy', propDate: 'date', months: 'months', method: 'method', marginPct: 'marginPct', marginMode: 'marginMode', roundTo: 'roundTo', prodPoster: 'prodPoster', prodBanner: 'prodBanner' };
+  for (const [id, key] of Object.entries(map)) {
+    const el = document.getElementById(id); el.value = P[key];
+    if (!el._bound) { el._bound = true; el.addEventListener('input', () => { P[key] = el.type === 'number' ? +el.value : el.value; if (id === 'clientName' && P.client.trim()) setError('clientName', ''); if (id === 'months') setError('months', P.months >= 1 && P.months <= 36 ? '' : 'Flight length must be between 1 and 36 months.'); if (id === 'marginPct') setError('marginPct', P.marginPct >= 0 && P.marginPct <= 90 ? '' : 'Margin must be between 0 and 90%.'); renderMedia(); renderSummary(); renderMarginExample(); save(); }); }
+  }
+  const checks = { marginOn: 'marginOn', prodOn: 'prodOn', showPop: 'showPop', showScreens: 'showScreens' };
+  for (const [id, key] of Object.entries(checks)) {
+    const el = document.getElementById(id); el.checked = !!P[key];
+    if (!el._bound) { el._bound = true; el.addEventListener('change', () => { P[key] = el.checked; if (id === 'prodOn') for (const l of Object.values(P.lines)) l.prod = el.checked; syncSubs(); renderMedia(); renderSummary(); renderMarginExample(); save(); }); }
+  }
+  syncSubs(); renderMarginExample();
+}
+function syncSubs() { document.getElementById('marginBox').classList.toggle('is-off', !P.marginOn); document.getElementById('prodBox').classList.toggle('is-off', !P.prodOn); document.querySelectorAll('#marginBox input, #marginBox select').forEach(i => i.disabled = !P.marginOn); document.querySelectorAll('#prodBox input').forEach(i => i.disabled = !P.prodOn); }
+function renderMarginExample() { document.getElementById('marginExample').textContent = fmt$(clientFromVendor(600)) + (P.marginOn ? ` (×${factor().toFixed(2)})` : ' (no markup)'); }
+function renderAll() { renderStates(); renderBases(); renderCatFilter(); renderMedia(); renderSummary(); }
+function setMode(mode) {
+  UI.mode = mode;
+  const b = document.getElementById('btnPricing');
+  b.innerHTML = mode === 'pricing' ? '<i class="fa-solid fa-arrow-left"></i>Back to proposal' : '<i class="fa-solid fa-pen-to-square"></i>Update pricing';
+  b.classList.toggle('btn-primary', mode !== 'pricing'); b.classList.toggle('btn-on-dark', mode === 'pricing');
+  buildMenu();
+}
+function showTab(tab) {
+  UI.tab = tab;
+  const mobile = window.innerWidth < 1024;
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('is-active', !mobile || p.dataset.tab === tab));
+  document.querySelectorAll('.tabbar button').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('is-active', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
+  if (mobile) window.scrollTo({ top: 0 });
+}
+function buildMenu() {
+  const m = document.getElementById('menu'); m.innerHTML = '';
+  const items = [
+    ['pricing', UI.mode === 'pricing' ? 'fa-arrow-left' : 'fa-pen-to-square', UI.mode === 'pricing' ? 'Back to proposal' : 'Update pricing', 'btn-primary'],
+    ['load', 'fa-file-arrow-up', 'Load rate card', ''], ['save', 'fa-floppy-disk', 'Save proposal', ''], ['open', 'fa-folder-open', 'Open proposal', ''], ['new', 'fa-plus', 'New proposal', ''], ['download', 'fa-download', 'Download rate card (Excel)', ''],
+  ];
+  for (const [act, icon, label, cls] of items) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.setAttribute('role', 'menuitem'); b.innerHTML = `<i class="fa-solid ${icon}"></i>${label}`; b.onclick = () => { closeMenu(); menuAction(act); }; m.appendChild(b); }
+}
+function menuAction(act) {
+  if (act === 'pricing') document.getElementById('btnPricing').click();
+  else if (act === 'load') document.getElementById('rateCardFile').click();
+  else if (act === 'save') document.getElementById('btnSave').click();
+  else if (act === 'open') document.getElementById('proposalFile').click();
+  else if (act === 'new') document.getElementById('btnNew').click();
+  else if (act === 'download') document.getElementById('btnDownloadRC').click();
+}
+function openMenu() { document.getElementById('menu').classList.add('open'); document.getElementById('menuBtn').setAttribute('aria-expanded', 'true'); document.getElementById('menu').querySelector('button').focus(); }
+function closeMenu() { document.getElementById('menu').classList.remove('open'); document.getElementById('menuBtn').setAttribute('aria-expanded', 'false'); }
+
+/* =========================================================================
+   Boot
+   ========================================================================= */
+(function boot() {
+  restoreRC();
+  if (!RC.rows || !RC.rows.length) {
+    document.getElementById('libError').classList.remove('hidden');
+    document.getElementById('libError').innerHTML = `<div class="notice notice-error"><h3>The rate card did not load</h3><p style="margin:0 0 var(--sp-3)">The built-in data file (data/rate_card.js) is missing or empty. Reload the page, or load a MASTER rate card workbook.</p><div style="display:flex;gap:var(--sp-2);flex-wrap:wrap"><button type="button" class="btn btn-secondary" onclick="location.reload()"><i class="fa-solid fa-rotate-right"></i>Reload</button><button type="button" class="btn btn-primary" onclick="document.getElementById('rateCardFile').click()"><i class="fa-solid fa-file-arrow-up"></i>Load rate card</button></div></div>`;
+  }
+  if (window.__libError) { const e = document.getElementById('libError'); e.classList.remove('hidden'); e.innerHTML += `<div class="notice notice-warn" style="margin-top:var(--sp-3)"><b>${window.__libError} did not load.</b> Excel export and rate card loading need an internet connection. Everything else works; reload once you are online.</div>`; }
+  indexData(); restore(); bindSettings(); setMode('build'); renderAll(); showTab(UI.tab);
+})();
+document.getElementById('search').addEventListener('input', e => { UI.search = e.target.value; renderBases(); });
+document.getElementById('clearStates').onclick = () => { P.selectedStates = []; renderStates(); renderBases(); save(); };
+document.getElementById('clearBases').onclick = () => { P.selectedBases = []; P.lines = {}; renderAll(); save(); };
+document.getElementById('selectAllBases').onclick = () => { for (const b of visibleBases()) if (!P.selectedBases.includes(b.key)) P.selectedBases.push(b.key); renderAll(); save(); };
+document.getElementById('showInternal').addEventListener('change', e => { UI.showInternal = e.target.checked; renderMedia(); renderSummary(); });
+document.getElementById('onlySelected').addEventListener('change', e => { UI.onlySelected = e.target.checked; renderMedia(); });
+document.getElementById('exportClient').onclick = () => runExport('exportClient', false);
+document.getElementById('exportInternal').onclick = () => runExport('exportInternal', true);
+document.getElementById('rateCardFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  document.getElementById('dataBar').textContent = `Loading ${f.name}…`;
+  try { const n = await loadRateCardFile(f); toast(`Loaded ${n} media options from ${f.name}`, 'success'); }
+  catch (err) { console.error(err); indexData(); toast('Could not read that file: ' + err.message, 'error'); }
+});
+document.getElementById('btnSave').onclick = () => { downloadBlob(JSON.stringify(P, null, 2), `${(P.client || 'proposal').replace(/[^\w\- ]+/g, '')} military proposal ${P.date}.json`, 'application/json'); toast('Proposal saved as a file.', 'success'); };
+document.getElementById('proposalFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { const o = JSON.parse(await f.text()); if (!o || !o.lines) throw new Error('not a proposal file'); P = Object.assign(defaultProposal(), o); bindSettings(); renderAll(); save(); toast('Proposal opened.', 'success'); } catch (err) { toast('That file is not a saved proposal.', 'error'); } });
+document.getElementById('btnNew').onclick = () => { if (!Object.keys(P.lines).length || confirm('Start a new proposal? Current selections will be cleared.')) { P = defaultProposal(); bindSettings(); renderAll(); save(); toast('New proposal started.'); } };
+document.getElementById('btnPricing').onclick = () => { setMode(UI.mode === 'pricing' ? 'build' : 'pricing'); renderMedia(); showTab('media'); };
+document.getElementById('btnDownloadRC').onclick = async () => { const b = document.getElementById('btnDownloadRC'); b.disabled = true; try { await exportRateCard(); toast('Rate card downloaded. Save it to Box to share.', 'success'); } catch (e) { console.error(e); toast('Download failed: ' + e.message, 'error'); } finally { b.disabled = false; } };
+function renderWho() { let n = ''; try { n = localStorage.getItem('wilkins-user-name') || ''; } catch (e) {} document.getElementById('whoLabel').textContent = n || 'Set your name'; }
+renderWho();
+document.getElementById('btnWho').onclick = () => { const cur = (() => { try { return localStorage.getItem('wilkins-user-name') || ''; } catch (e) { return ''; } })(); const n = (prompt('Your name (recorded with pricing edits):', cur) || '').trim(); try { if (n) localStorage.setItem('wilkins-user-name', n); } catch (e) {} renderWho(); };
+document.getElementById('btnResetRC').onclick = () => { if (confirm('Discard all pricing edits saved in this browser and go back to the built-in rate card?')) { localStorage.removeItem(LS_RC); location.reload(); } };
+document.getElementById('menuBtn').onclick = () => { const open = document.getElementById('menu').classList.contains('open'); open ? closeMenu() : openMenu(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+document.addEventListener('click', e => { if (!e.target.closest('#menu') && !e.target.closest('#menuBtn')) closeMenu(); });
+document.querySelectorAll('.tabbar button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+window.addEventListener('resize', () => showTab(UI.tab));
+</script>
+</body>
+</html>
